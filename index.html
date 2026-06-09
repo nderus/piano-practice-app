@@ -47,7 +47,7 @@
     background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:14px;
     width:calc(100% - 32px);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   .tabs button{
-    flex:1;padding:11px 3px;border:none;border-radius:10px;font-size:13px;font-weight:600;
+    flex:1;padding:11px 2px;border:none;border-radius:10px;font-size:12.5px;font-weight:600;white-space:nowrap;
     background:transparent;color:var(--muted);transition:color .2s,background .2s,box-shadow .2s;cursor:pointer;
   }
   .tabs button.active{
@@ -231,7 +231,7 @@
 <nav class="tabs">
   <button data-tab="chords" class="active">Chords</button>
   <button data-tab="scales">Scales</button>
-  <button data-tab="metronome">Metro</button>
+  <button data-tab="metronome">Metronome</button>
   <button data-tab="rhythm">Rhythm</button>
 </nav>
 
@@ -381,7 +381,7 @@
     </div>
     <div class="rrow">
       <span class="rrow-label">Tempo</span>
-      <div class="rstep"><button id="rb-dec">−</button><b id="rb-val">80</b><small>BPM</small><button id="rb-inc">+</button></div>
+      <div class="rstep"><button id="rb-dec">−</button><b id="rb-val">52</b><small>BPM</small><button id="rb-inc">+</button></div>
     </div>
 
     <div class="toggle-row"><span class="rrow-label"><span class="dot-a"></span>Sound layer A</span>
@@ -448,7 +448,7 @@ const state = {
   subdivision: saved.subdivision || 1,
   rhX: saved.rhX || 3,
   rhY: saved.rhY || 2,
-  rhBpm: saved.rhBpm || 80,
+  rhBpm: saved.rhBpm || 52,
   rhA: saved.rhA !== undefined ? saved.rhA : true,
   rhB: saved.rhB !== undefined ? saved.rhB : true,
 };
@@ -456,6 +456,8 @@ const state = {
 /* ---------- Tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(btn=>{
   btn.onclick = ()=>{
+    if(metRunning) stopMet();      // don't leave the metronome running in the background
+    if(rhRunning) stopRhythm();
     document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
@@ -725,12 +727,18 @@ function loadClick(){
     }));
   return clickLoad;
 }
-function playClick(time, rate, gain){
+function playClick(time, rate, gain, lp){
   if(!clickBuffer) return;
   const src=audioCtx.createBufferSource();
   src.buffer=clickBuffer; src.playbackRate.value=rate;
   const g=audioCtx.createGain(); g.gain.value=gain;
-  src.connect(g); g.connect(audioCtx.destination);
+  src.connect(g);
+  if(lp){                                  // optional low-pass to soften (used by Rhythm)
+    const f=audioCtx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=lp;
+    g.connect(f); f.connect(audioCtx.destination);
+  } else {
+    g.connect(audioCtx.destination);
+  }
   src.start(time);
 }
 function clickAt(time, accent){ playClick(time, accent?1.12:1.0, accent?1.0:0.82); }
@@ -787,12 +795,12 @@ document.getElementById('met-toggle').onclick=toggleMet;
   document.getElementById(p+'-inc').onclick=()=>setBpm(state.bpm+1);
 });
 
-/* Tap a BPM number to type an exact value (clamped to 40–240). */
-function startBpmEdit(el){
+/* Tap a number to type an exact value; the apply() fn enforces its own range. */
+function startNumEdit(el, cur, apply){
   if(document.querySelector('.bpm-input')) return;            // one editor at a time
   const cs=getComputedStyle(el);
   const input=document.createElement('input');
-  input.type='text'; input.inputMode='numeric'; input.maxLength=3; input.value=state.bpm;
+  input.type='text'; input.inputMode='numeric'; input.maxLength=3; input.value=cur();
   input.className='bpm-input';
   input.style.fontSize=cs.fontSize; input.style.fontWeight=cs.fontWeight; input.style.fontFamily=cs.fontFamily;
   const parent=el.parentNode;
@@ -802,11 +810,7 @@ function startBpmEdit(el){
   const commit=(keep)=>{
     if(done) return; done=true;
     parent.replaceChild(el, input);
-    if(keep){
-      let v=parseInt(input.value,10);
-      if(!isNaN(v)) setBpm(v);                                // setBpm clamps to 40–240
-    }
-    updateMetUI();
+    if(keep){ const v=parseInt(input.value,10); if(!isNaN(v)) apply(v); }
   };
   input.addEventListener('blur', ()=>commit(true));
   input.addEventListener('keydown', e=>{
@@ -816,7 +820,7 @@ function startBpmEdit(el){
 }
 document.querySelectorAll('.js-bpm').forEach(el=>{
   el.title='Tap to type a BPM (40–240)';
-  el.addEventListener('click', ()=>startBpmEdit(el));
+  el.addEventListener('click', ()=>startNumEdit(el, ()=>state.bpm, setBpm));
 });
 
 function setBpm(v){
@@ -893,8 +897,8 @@ function rhRender(){
 function rhResync(){ if(rhRunning){ const t=audioCtx.currentTime+0.08; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
 function rhScheduler(){
   const cycle=60/state.rhBpm, ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
-  while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,1.0,0.9);  rhNextA+=cycle/state.rhX; }
-  while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.32,0.62); rhNextB+=cycle/state.rhY; }
+  while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,0.92,0.62,2400); rhNextA+=cycle/state.rhX; }
+  while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.14,0.46,3000); rhNextB+=cycle/state.rhY; }
 }
 function rhFlash(id,n,prev,cur){
   const marks=document.getElementById(id).children;
@@ -946,6 +950,9 @@ document.getElementById('rb-dec').onclick=()=>rhSetBpm(state.rhBpm-1);
 document.getElementById('rb-inc').onclick=()=>rhSetBpm(state.rhBpm+1);
 const rhSA=document.getElementById('rh-sa'); rhSA.checked=state.rhA; rhSA.onchange=()=>{ state.rhA=rhSA.checked; save(); };
 const rhSB=document.getElementById('rh-sb'); rhSB.checked=state.rhB; rhSB.onchange=()=>{ state.rhB=rhSB.checked; save(); };
+const rbVal=document.getElementById('rb-val');
+rbVal.style.cursor='pointer'; rbVal.title='Tap to type a tempo (30–200)';
+rbVal.addEventListener('click', ()=>startNumEdit(rbVal, ()=>state.rhBpm, rhSetBpm));
 rhRender();
 
 /* ---------- Service worker (offline) ---------- */
