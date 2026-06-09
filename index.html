@@ -334,6 +334,10 @@
           <span>Show the notes</span>
           <label class="switch"><input type="checkbox" id="chord-shownotes" checked><span class="slider"></span></label>
         </div>
+        <div class="toggle-row">
+          <span>Auto-advance (bars)</span>
+          <div class="chips" id="chord-adv"></div>
+        </div>
 
         <div class="section-title">Roots allowed</div>
         <div class="chips" id="chord-roots"></div>
@@ -388,6 +392,10 @@
           <span>Show the notes</span>
           <label class="switch"><input type="checkbox" id="scale-shownotes" checked><span class="slider"></span></label>
         </div>
+        <div class="toggle-row">
+          <span>Auto-advance (bars)</span>
+          <div class="chips" id="scale-adv"></div>
+        </div>
 
         <div class="section-title">Roots allowed</div>
         <div class="chips" id="scale-roots"></div>
@@ -403,6 +411,7 @@
       <input type="range" id="bpm-range" min="40" max="240" value="100">
       <button class="stepbtn" id="bpm-inc">+</button>
     </div>
+    <div class="chips" id="bpm-recents" style="justify-content:center;min-height:0"></div>
     <div class="pendulum">
       <div class="pend-arm js-pend-arm" id="pend-arm"><div class="pend-bob"></div></div>
       <div class="pend-pivot"></div>
@@ -558,6 +567,8 @@ const state = {
   rhB: saved.rhB !== undefined ? saved.rhB : true,
   rhView: saved.rhView || 'strip',
   chordMode: saved.chordMode || 'practice',
+  recentBpms: saved.recentBpms || [],
+  autoAdv: saved.autoAdv || 0,
 };
 
 /* ---------- Tabs ---------- */
@@ -833,12 +844,42 @@ function applyPend(){
 pendToggles.forEach(b=>b.onclick=()=>{ state.showPend=!state.showPend; applyPend(); save(); });
 applyPend();
 
+/* auto-advance every N bars (shared between Chords and Scales) */
+const ADV_OPTS=[0,1,2,4];
+function renderAdv(){
+  ['chord-adv','scale-adv'].forEach(id=>{
+    const c=document.getElementById(id); c.innerHTML='';
+    ADV_OPTS.forEach(v=>{
+      const el=document.createElement('div');
+      el.className='chip'+(state.autoAdv===v?' on':'');
+      el.innerHTML='<span>'+(v===0?'Off':v)+'</span>';
+      el.onclick=()=>{ state.autoAdv=v; save(); renderAdv(); };
+      c.appendChild(el);
+    });
+  });
+}
+renderAdv();
+
 refreshChordSettings();
 refreshScaleSettings();
 updateChordBtn();
 updateScaleBtn();
 
 /* ---------- Metronome (Web Audio, lookahead scheduler) ---------- */
+/* Keep the screen awake while the metronome or rhythm trainer is running. */
+let wakeLock=null;
+async function acquireWake(){
+  try{
+    if('wakeLock' in navigator && !wakeLock){
+      wakeLock=await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', ()=>{ wakeLock=null; });
+    }
+  }catch(e){}
+}
+function releaseWake(){ if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }
+function syncWake(){ if(metRunning||rhRunning) acquireWake(); else releaseWake(); }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') syncWake(); });
+
 let audioCtx=null;
 let metRunning=false;
 let nextNoteTime=0;
@@ -931,7 +972,13 @@ function playClick(time, rate, gain, lp){
   src.start(time);
 }
 function clickAt(time, accent){ playClick(time, accent?1.12:1.0, accent?1.0:0.82); }
-let subIndex=0;
+let subIndex=0, downbeats=0;
+/* auto-advance: draw the next chord/scale on the downbeat every N bars */
+function autoAdvanceTick(){
+  const chords=document.getElementById('view-chords');
+  if(chords.classList.contains('active') && !chords.classList.contains('ref-mode')) nextChord();
+  else if(document.getElementById('view-scales').classList.contains('active')) nextScale();
+}
 function scheduler(){
   const sub = state.subdivision || 1;
   const secPerTick = (60.0/state.bpm) / sub;
@@ -940,6 +987,11 @@ function scheduler(){
       clickAt(nextNoteTime, beatInBar===0);          // main beat (accent on downbeat)
       const beatToFlash=beatInBar, delay=(nextNoteTime-audioCtx.currentTime)*1000;
       setTimeout(()=>flashBeat(beatToFlash), Math.max(0,delay));
+      if(beatInBar===0){
+        if(state.autoAdv && downbeats>0 && downbeats%state.autoAdv===0)
+          setTimeout(autoAdvanceTick, Math.max(0,delay));
+        downbeats++;
+      }
     } else {
       playClick(nextNoteTime, 1.08, 0.34);            // soft subdivision tick
     }
@@ -958,6 +1010,19 @@ function updateMetUI(){
     el.classList.toggle('playing', metRunning);
   });
   document.body.classList.toggle('met-running', metRunning);
+  renderRecents();
+}
+/* last-used tempos as one-tap chips */
+function renderRecents(){
+  const c=document.getElementById('bpm-recents'); if(!c) return;
+  c.innerHTML='';
+  (state.recentBpms||[]).forEach(v=>{
+    const el=document.createElement('div');
+    el.className='chip'+(v===state.bpm?' on':'');
+    el.innerHTML='<span>'+v+'</span>';
+    el.onclick=()=>setBpm(v);
+    c.appendChild(el);
+  });
 }
 function ensureAudio(){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -970,10 +1035,13 @@ function startMet(){
   document.getElementById('met-toggle').textContent='…';
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
-    metRunning=true; beatInBar=0; subIndex=0; nextNoteTime=audioCtx.currentTime+0.12;
+    metRunning=true; beatInBar=0; subIndex=0; downbeats=0; nextNoteTime=audioCtx.currentTime+0.12;
+    state.recentBpms=[state.bpm, ...(state.recentBpms||[]).filter(v=>v!==state.bpm)].slice(0,3);
+    save();
     startPendulum();
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
+    syncWake();
   }).catch(()=>{ metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
 }
 function stopMet(){
@@ -981,6 +1049,7 @@ function stopMet(){
   document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('on'));
   stopPendulum();
   updateMetUI();
+  syncWake();
 }
 function toggleMet(){ metRunning ? stopMet() : startMet(); }
 document.getElementById('met-toggle').onclick=toggleMet;
@@ -1142,6 +1211,7 @@ function startRhythm(){
     rhStart=rhNextA=rhNextB=t; rhPrev=0;
     rhTimer=setInterval(rhScheduler, LOOKAHEAD);
     if(!rhRAF) rhRAF=requestAnimationFrame(rhLoop);
+    syncWake();
     document.getElementById('rhythm-toggle').textContent='■ Stop';
   }).catch(()=>{ document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.'); });
 }
@@ -1152,6 +1222,7 @@ function stopRhythm(){
   const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate(0deg)';
   document.querySelectorAll('#view-rhythm .rmark, #view-rhythm .rdot').forEach(m=>m.classList.remove('hit'));
   document.getElementById('rhythm-toggle').textContent='▶ Start';
+  syncWake();
 }
 document.getElementById('rhythm-toggle').onclick=()=>{ rhRunning?stopRhythm():startRhythm(); };
 function rhSetX(v){ state.rhX=Math.min(9,Math.max(2,v)); rhRender(); rhResync(); save(); }
