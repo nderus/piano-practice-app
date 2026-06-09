@@ -47,7 +47,7 @@
     background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:14px;
     width:calc(100% - 32px);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   .tabs button{
-    flex:1;padding:11px 4px;border:none;border-radius:10px;font-size:14.5px;font-weight:600;
+    flex:1;padding:11px 3px;border:none;border-radius:10px;font-size:13px;font-weight:600;
     background:transparent;color:var(--muted);transition:color .2s,background .2s,box-shadow .2s;cursor:pointer;
   }
   .tabs button.active{
@@ -198,6 +198,31 @@
   .subseg{display:flex;gap:4px;padding:5px;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:13px;max-width:300px;margin:0 auto}
   .subseg button{flex:1;padding:9px 4px;border:none;border-radius:9px;font-size:14px;font-weight:600;background:transparent;color:var(--muted);transition:.15s}
   .subseg button.active{color:#fff;background:linear-gradient(180deg,var(--accent),var(--accent-press));box-shadow:0 4px 12px rgba(var(--accent-rgb),.35)}
+
+  /* rhythm (polyrhythm) visualizer */
+  .rhythm-strip{background:linear-gradient(165deg,rgba(var(--accent-rgb),.10),rgba(20,29,43,.5));
+    border:1px solid var(--line);border-radius:20px;padding:20px 20px;box-shadow:var(--shadow);margin:6px 0 2px}
+  .rtrack{position:relative}
+  .rlane{position:relative;height:42px;margin:8px 0}
+  .rlane::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(255,255,255,.08);transform:translateY(-50%)}
+  .rmark{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;transform:translate(-50%,-50%);transition:transform .05s,background .05s,box-shadow .05s}
+  .rmark.accent{width:19px;height:19px}
+  #rlane-a .rmark{background:rgba(var(--accent-rgb),.35)}
+  #rlane-b .rmark{background:rgba(var(--teal-rgb),.35)}
+  #rlane-a .rmark.hit{background:var(--accent);transform:translate(-50%,-50%) scale(1.5);box-shadow:0 0 12px rgba(var(--accent-rgb),.85)}
+  #rlane-b .rmark.hit{background:var(--teal);transform:translate(-50%,-50%) scale(1.5);box-shadow:0 0 12px rgba(var(--teal-rgb),.85)}
+  .rplayhead{position:absolute;top:-4px;bottom:-4px;width:2px;left:0;background:#fff;opacity:.85;transform:translateX(-50%);box-shadow:0 0 8px rgba(255,255,255,.6)}
+  .ratio{text-align:center;font-size:46px;font-weight:800;margin:14px 0 6px;letter-spacing:1px}
+  .ratio-a{color:var(--accent)} .ratio-b{color:var(--teal)} .ratio-sep{color:var(--faint);margin:0 10px}
+  .rrow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--hair)}
+  .rrow-label{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px}
+  .dot-a,.dot-b{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+  .dot-a{background:var(--accent)} .dot-b{background:var(--teal)}
+  .rstep{display:flex;align-items:center;gap:12px}
+  .rstep button{width:42px;height:42px;border:none;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);font-size:22px;font-weight:700;transition:.1s}
+  .rstep button:active{transform:scale(.93)}
+  .rstep b{min-width:30px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+  .rstep small{color:var(--muted);font-size:11px;margin-left:-7px;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -206,7 +231,8 @@
 <nav class="tabs">
   <button data-tab="chords" class="active">Chords</button>
   <button data-tab="scales">Scales</button>
-  <button data-tab="metronome">Metronome</button>
+  <button data-tab="metronome">Metro</button>
+  <button data-tab="rhythm">Rhythm</button>
 </nav>
 
 <main>
@@ -333,6 +359,38 @@
       </div>
     </div>
   </section>
+
+  <!-- ===== RHYTHM ===== -->
+  <section class="view" id="view-rhythm">
+    <div class="rhythm-strip">
+      <div class="rtrack">
+        <div class="rlane" id="rlane-a"></div>
+        <div class="rlane" id="rlane-b"></div>
+        <div class="rplayhead" id="rplayhead"></div>
+      </div>
+    </div>
+    <div class="ratio"><span class="ratio-a" id="ratio-x">3</span><span class="ratio-sep">:</span><span class="ratio-b" id="ratio-y">2</span></div>
+
+    <div class="rrow">
+      <span class="rrow-label"><span class="dot-a"></span>Layer A</span>
+      <div class="rstep"><button id="rx-dec">−</button><b id="rx-val">3</b><button id="rx-inc">+</button></div>
+    </div>
+    <div class="rrow">
+      <span class="rrow-label"><span class="dot-b"></span>Layer B</span>
+      <div class="rstep"><button id="ry-dec">−</button><b id="ry-val">2</b><button id="ry-inc">+</button></div>
+    </div>
+    <div class="rrow">
+      <span class="rrow-label">Tempo</span>
+      <div class="rstep"><button id="rb-dec">−</button><b id="rb-val">80</b><small>BPM</small><button id="rb-inc">+</button></div>
+    </div>
+
+    <div class="toggle-row"><span class="rrow-label"><span class="dot-a"></span>Sound layer A</span>
+      <label class="switch"><input type="checkbox" id="rh-sa" checked><span class="slider"></span></label></div>
+    <div class="toggle-row"><span class="rrow-label"><span class="dot-b"></span>Sound layer B</span>
+      <label class="switch"><input type="checkbox" id="rh-sb" checked><span class="slider"></span></label></div>
+
+    <button class="bigbtn" id="rhythm-toggle" style="margin-top:18px">▶ Start</button>
+  </section>
 </main>
 
 <script>
@@ -388,6 +446,11 @@ const state = {
   bpm: saved.bpm || 100,
   beats: saved.beats || 4,
   subdivision: saved.subdivision || 1,
+  rhX: saved.rhX || 3,
+  rhY: saved.rhY || 2,
+  rhBpm: saved.rhBpm || 80,
+  rhA: saved.rhA !== undefined ? saved.rhA : true,
+  rhB: saved.rhB !== undefined ? saved.rhB : true,
 };
 
 /* ---------- Tabs ---------- */
@@ -803,6 +866,87 @@ document.getElementById('tap-tempo').onclick=()=>{
 
 setBpm(state.bpm);
 setBeats(state.beats);
+
+/* ---------- Rhythm (polyrhythm) visualizer ----------
+   Two layers, X and Y notes evenly across one shared cycle (= one beat = 60/rhBpm).
+   Audio uses the lookahead scheduler; the strip + playhead are driven by the audio
+   clock via requestAnimationFrame so they stay locked. Each layer's sound toggles. */
+let rhRunning=false, rhTimer=null, rhRAF=null, rhStart=0, rhNextA=0, rhNextB=0, rhPrev=0;
+function rhRenderLane(id,n){
+  const lane=document.getElementById(id); lane.innerHTML='';
+  for(let i=0;i<n;i++){
+    const m=document.createElement('div');
+    m.className='rmark'+(i===0?' accent':'');
+    m.style.left=(i/n*100)+'%';
+    lane.appendChild(m);
+  }
+}
+function rhRender(){
+  rhRenderLane('rlane-a', state.rhX);
+  rhRenderLane('rlane-b', state.rhY);
+  document.getElementById('ratio-x').textContent=state.rhX;
+  document.getElementById('ratio-y').textContent=state.rhY;
+  document.getElementById('rx-val').textContent=state.rhX;
+  document.getElementById('ry-val').textContent=state.rhY;
+  document.getElementById('rb-val').textContent=state.rhBpm;
+}
+function rhResync(){ if(rhRunning){ const t=audioCtx.currentTime+0.08; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
+function rhScheduler(){
+  const cycle=60/state.rhBpm, ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
+  while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,1.0,0.9);  rhNextA+=cycle/state.rhX; }
+  while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.32,0.62); rhNextB+=cycle/state.rhY; }
+}
+function rhFlash(id,n,prev,cur){
+  const marks=document.getElementById(id).children;
+  for(let i=0;i<n;i++){
+    const p=i/n;
+    const crossed = prev<=cur ? (p>prev && p<=cur) : (p>prev || p<=cur);   // handle wrap
+    if(crossed && marks[i]){ const m=marks[i]; m.classList.add('hit'); setTimeout(()=>m.classList.remove('hit'),110); }
+  }
+}
+function rhLoop(){
+  if(!rhRunning){ rhRAF=null; return; }
+  const cycle=60/state.rhBpm;
+  let phase=((audioCtx.currentTime-rhStart)/cycle)%1; if(phase<0) phase+=1;
+  const ph=document.getElementById('rplayhead'); if(ph) ph.style.left=(phase*100)+'%';
+  rhFlash('rlane-a', state.rhX, rhPrev, phase);
+  rhFlash('rlane-b', state.rhY, rhPrev, phase);
+  rhPrev=phase;
+  rhRAF=requestAnimationFrame(rhLoop);
+}
+function startRhythm(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  document.getElementById('rhythm-toggle').textContent='…';
+  loadClick().then(()=>{
+    rhRunning=true;
+    const t=audioCtx.currentTime+0.12;
+    rhStart=rhNextA=rhNextB=t; rhPrev=0;
+    rhTimer=setInterval(rhScheduler, LOOKAHEAD);
+    if(!rhRAF) rhRAF=requestAnimationFrame(rhLoop);
+    document.getElementById('rhythm-toggle').textContent='■ Stop';
+  }).catch(()=>{ document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.'); });
+}
+function stopRhythm(){
+  rhRunning=false; clearInterval(rhTimer);
+  if(rhRAF){ cancelAnimationFrame(rhRAF); rhRAF=null; }
+  const ph=document.getElementById('rplayhead'); if(ph) ph.style.left='0%';
+  document.querySelectorAll('#view-rhythm .rmark').forEach(m=>m.classList.remove('hit'));
+  document.getElementById('rhythm-toggle').textContent='▶ Start';
+}
+document.getElementById('rhythm-toggle').onclick=()=>{ rhRunning?stopRhythm():startRhythm(); };
+function rhSetX(v){ state.rhX=Math.min(9,Math.max(2,v)); rhRender(); rhResync(); save(); }
+function rhSetY(v){ state.rhY=Math.min(9,Math.max(2,v)); rhRender(); rhResync(); save(); }
+function rhSetBpm(v){ state.rhBpm=Math.min(200,Math.max(30,v)); rhRender(); rhResync(); save(); }
+document.getElementById('rx-dec').onclick=()=>rhSetX(state.rhX-1);
+document.getElementById('rx-inc').onclick=()=>rhSetX(state.rhX+1);
+document.getElementById('ry-dec').onclick=()=>rhSetY(state.rhY-1);
+document.getElementById('ry-inc').onclick=()=>rhSetY(state.rhY+1);
+document.getElementById('rb-dec').onclick=()=>rhSetBpm(state.rhBpm-1);
+document.getElementById('rb-inc').onclick=()=>rhSetBpm(state.rhBpm+1);
+const rhSA=document.getElementById('rh-sa'); rhSA.checked=state.rhA; rhSA.onchange=()=>{ state.rhA=rhSA.checked; save(); };
+const rhSB=document.getElementById('rh-sb'); rhSB.checked=state.rhB; rhSB.onchange=()=>{ state.rhB=rhSB.checked; save(); };
+rhRender();
 
 /* ---------- Service worker (offline) ---------- */
 if('serviceWorker' in navigator){
