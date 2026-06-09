@@ -300,12 +300,7 @@
       <div class="body">
         <div class="section-title">Chord types in the pool</div>
         <div class="chips" id="chord-chips"></div>
-        <div class="addform">
-          <input id="chord-add-name" placeholder="Name (e.g. sus4)">
-          <input id="chord-add-int" placeholder="Intervals 0,5,7" inputmode="numeric">
-          <button id="chord-add-btn">+</button>
-        </div>
-        <div class="hint">Intervals = semitones from the root. Major triad = <b>0,4,7</b>, dom7 = <b>0,4,7,10</b>. Tap a type to toggle it; tap ✕ to delete a custom one.</div>
+        <div class="hint">Tap a type to add or remove it from the random pool.</div>
 
         <div class="toggle-row">
           <span>Randomize inversions</span>
@@ -350,12 +345,7 @@
       <div class="body">
         <div class="section-title">Scale types in the pool</div>
         <div class="chips" id="scale-chips"></div>
-        <div class="addform">
-          <input id="scale-add-name" placeholder="Name (e.g. Whole tone)">
-          <input id="scale-add-int" placeholder="Intervals 0,2,4,6,8,10" inputmode="numeric">
-          <button id="scale-add-btn">+</button>
-        </div>
-        <div class="hint">Intervals = semitones from the root. Major = <b>0,2,4,5,7,9,11</b>. Tap a type to toggle it; tap ✕ to delete a custom one.</div>
+        <div class="hint">Tap a type to add or remove it from the random pool.</div>
 
         <div class="toggle-row">
           <span>Session — no repeats</span>
@@ -716,27 +706,6 @@ function refreshScaleSettings(){
     save(); refreshScaleSettings();
   });
 }
-
-function parseIntervals(str){
-  const arr = str.split(/[ ,]+/).map(s=>parseInt(s,10)).filter(n=>!isNaN(n)&&n>=0&&n<=24);
-  return [...new Set(arr)].sort((a,b)=>a-b);
-}
-document.getElementById('chord-add-btn').onclick=()=>{
-  const name=document.getElementById('chord-add-name').value.trim();
-  const iv=parseIntervals(document.getElementById('chord-add-int').value);
-  if(!name||iv.length<2){ alert('Enter a name and at least 2 intervals, e.g. 0,5,7'); return; }
-  state.chordTypes.push({id:'c'+Date.now(),name,intervals:iv,enabled:true,custom:true});
-  document.getElementById('chord-add-name').value=''; document.getElementById('chord-add-int').value='';
-  save(); refreshChordSettings();
-};
-document.getElementById('scale-add-btn').onclick=()=>{
-  const name=document.getElementById('scale-add-name').value.trim();
-  const iv=parseIntervals(document.getElementById('scale-add-int').value);
-  if(!name||iv.length<2){ alert('Enter a name and at least 2 intervals, e.g. 0,2,4,6,8,10'); return; }
-  state.scaleTypes.push({id:'s'+Date.now(),name,intervals:iv,enabled:true,custom:true});
-  document.getElementById('scale-add-name').value=''; document.getElementById('scale-add-int').value='';
-  save(); refreshScaleSettings();
-};
 
 const chordInv=document.getElementById('chord-inv');
 chordInv.checked=state.chordInv;
