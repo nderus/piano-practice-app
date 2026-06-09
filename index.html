@@ -707,19 +707,28 @@ function flashBeat(i){
    exactly on each beat, with a natural gravity-like ease at the turns. */
 const PEND_ANGLE=40;
 let pendPhase=0, pendLast=0, pendRAF=null;
+/* Best estimate of the audio time being HEARD right now (scheduling time minus
+   output latency), so on-screen visuals match the speakers, not the scheduler. */
+function audioNow(){
+  if(audioCtx.getOutputTimestamp){
+    const ts=audioCtx.getOutputTimestamp();
+    if(ts && ts.contextTime>0) return ts.contextTime;
+  }
+  return audioCtx.currentTime - (audioCtx.outputLatency||0);
+}
 function setArms(transform, transition){
   document.querySelectorAll('.js-pend-arm').forEach(arm=>{ arm.style.transition=transition; arm.style.transform=transform; });
 }
 function pendulumLoop(){
   if(!metRunning){ pendRAF=null; return; }
-  const now=audioCtx.currentTime;
+  const now=audioNow();
   pendPhase += (now-pendLast)/(60/state.bpm);
   pendLast=now;
   setArms('rotate('+(PEND_ANGLE*Math.cos(Math.PI*pendPhase)).toFixed(2)+'deg)','none');
   pendRAF=requestAnimationFrame(pendulumLoop);
 }
 function startPendulum(){
-  pendLast=audioCtx.currentTime;
+  pendLast=audioNow();
   pendPhase = -(nextNoteTime-pendLast)/(60/state.bpm);   // line the first beat up with an extreme
   if(!pendRAF) pendRAF=requestAnimationFrame(pendulumLoop);
 }
@@ -934,7 +943,7 @@ function rhFlash(id,n,prev,cur){
 function rhLoop(){
   if(!rhRunning){ rhRAF=null; return; }
   const cycle=rhCycle();
-  let phase=((audioCtx.currentTime-rhStart)/cycle)%1; if(phase<0) phase+=1;
+  let phase=((audioNow()-rhStart)/cycle)%1; if(phase<0) phase+=1;
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left=(phase*100)+'%';
   rhFlash('rlane-a', state.rhX, rhPrev, phase);
   rhFlash('rlane-b', state.rhY, rhPrev, phase);
