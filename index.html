@@ -181,6 +181,17 @@
   .met-sig button{width:44px;height:44px;border:none;border-radius:13px;background:rgba(255,255,255,.06);
     border:1px solid var(--line);color:var(--text);font-size:22px;font-weight:700;transition:.1s}
   .met-sig button:active{transform:scale(.94)}
+  /* swinging pendulum */
+  .pendulum{position:relative;width:150px;height:150px;margin:4px auto 6px}
+  .pend-base{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:96px;height:14px;
+    border-radius:8px 8px 5px 5px;background:linear-gradient(180deg,#243247,#161f2d);border:1px solid var(--line)}
+  .pend-arm{position:absolute;left:50%;bottom:13px;width:5px;height:126px;margin-left:-2.5px;border-radius:3px;
+    transform-origin:bottom center;transform:rotate(0deg);transition:transform .35s ease-in-out;
+    background:linear-gradient(180deg,var(--accent),var(--accent-press));z-index:2}
+  .pend-bob{position:absolute;left:50%;top:26px;transform:translateX(-50%);width:24px;height:17px;border-radius:5px;
+    background:linear-gradient(180deg,#d3e3ff,#6aa9ff);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+  .pend-pivot{position:absolute;left:50%;bottom:13px;transform:translate(-50%,50%);width:15px;height:15px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),.6);z-index:3}
 </style>
 </head>
 <body>
@@ -288,6 +299,11 @@
       <button class="stepbtn" id="bpm-dec">−</button>
       <input type="range" id="bpm-range" min="40" max="240" value="100">
       <button class="stepbtn" id="bpm-inc">+</button>
+    </div>
+    <div class="pendulum">
+      <div class="pend-arm" id="pend-arm"><div class="pend-bob"></div></div>
+      <div class="pend-pivot"></div>
+      <div class="pend-base"></div>
     </div>
     <div class="beats" id="beat-dots"></div>
     <div class="met-controls">
@@ -587,6 +603,23 @@ function flashBeat(i){
   document.querySelectorAll('.js-met-pulse').forEach(p=>{
     p.classList.add('pulse'); setTimeout(()=>p.classList.remove('pulse'), 100);
   });
+  swingPendulum();
+}
+
+/* Pendulum: swing to the opposite extreme on each beat, arriving exactly on the
+   next click. Transition lasts one beat with an ease-in-out (gravity-like) curve. */
+const PEND_ANGLE=26;
+let pendSide=-1;
+function swingPendulum(){
+  const arm=document.getElementById('pend-arm'); if(!arm) return;
+  pendSide*=-1;
+  arm.style.transitionDuration=(60/state.bpm)+'s';
+  arm.style.transform='rotate('+(pendSide*PEND_ANGLE)+'deg)';
+}
+function resetPendulum(active){
+  const arm=document.getElementById('pend-arm'); if(!arm) return;
+  if(active){ pendSide=-1; arm.style.transitionDuration='0s'; arm.style.transform='rotate('+(-PEND_ANGLE)+'deg)'; }
+  else { arm.style.transitionDuration='.4s'; arm.style.transform='rotate(0deg)'; }
 }
 /* Real vintage metronome click: a single tick sampled from a classic
    mechanical metronome (click.wav). The accented downbeat plays the same
@@ -642,6 +675,7 @@ function startMet(){
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
     metRunning=true; beatInBar=0; nextNoteTime=audioCtx.currentTime+0.12;
+    resetPendulum(true);
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
   }).catch(()=>{ metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
@@ -649,6 +683,7 @@ function startMet(){
 function stopMet(){
   metRunning=false; clearInterval(timerId);
   document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('on'));
+  resetPendulum(false);
   updateMetUI();
 }
 function toggleMet(){ metRunning ? stopMet() : startMet(); }
