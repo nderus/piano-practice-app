@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """Generate the app icons (pure stdlib PNG, no dependencies).
 
-Draws a rounded dark tile with a small piano keyboard. Run: python3 make_icons.py
+A centered piano keyboard on a navy gradient, in the app's Ocean-blue palette.
+Run: python3 make_icons.py
 """
 import struct, zlib
 
-BG     = (22, 22, 30)     # app background
-PANEL  = (124, 131, 255)  # accent (top band)
-WHITE  = (236, 236, 245)
-BLACK  = (15, 15, 22)
+TOP    = (22, 38, 64)    # bg gradient (upper)
+BOT    = (11, 16, 24)    # bg gradient (lower)
+WHITE  = (238, 243, 251) # white keys
+BLACK  = (10, 14, 21)    # black keys
+ACCENT = (79, 140, 255)  # blue accent
+
+def lerp(a, b, t):
+    return (int(a[0]+(b[0]-a[0])*t), int(a[1]+(b[1]-a[1])*t), int(a[2]+(b[2]-a[2])*t))
 
 def png(path, size):
     px = bytearray(size * size * 3)
@@ -18,72 +23,64 @@ def png(path, size):
             i = (y * size + x) * 3
             px[i], px[i+1], px[i+2] = c
 
-    r = int(size * 0.18)  # corner radius for the rounded tile
-
-    # keyboard geometry
-    kb_top = int(size * 0.30)
-    kb_bot = int(size * 0.78)
-    kb_left = int(size * 0.12)
-    kb_right = int(size * 0.88)
-    n_white = 7
-    wkey_w = (kb_right - kb_left) / n_white
-
+    # background vertical gradient
+    bg_row = [lerp(TOP, BOT, y / size) for y in range(size)]
     for y in range(size):
+        c = bg_row[y]
+        base = y * size * 3
         for x in range(size):
-            # rounded-corner mask -> transparent-ish (use BG outside radius)
-            inside = True
-            cx = cy = None
-            if x < r and y < r: cx, cy = r, r
-            elif x >= size - r and y < r: cx, cy = size - r - 1, r
-            elif x < r and y >= size - r: cx, cy = r, size - r - 1
-            elif x >= size - r and y >= size - r: cx, cy = size - r - 1, size - r - 1
-            if cx is not None and (x - cx) ** 2 + (y - cy) ** 2 > r * r:
-                inside = False
+            i = base + x * 3
+            px[i], px[i+1], px[i+2] = c
 
-            if not inside:
-                put(x, y, BG)
-                continue
+    # keyboard geometry — centered both axes (nudged up slightly for the accent line)
+    kb_w = size * 0.64
+    kb_h = size * 0.40
+    kb_left = (size - kb_w) / 2.0
+    kb_right = kb_left + kb_w
+    kb_top = size * 0.46 - kb_h / 2.0
+    kb_bot = kb_top + kb_h
+    n_white = 7
+    wkey_w = kb_w / n_white
 
-            # accent band at the very top
-            if y < int(size * 0.10):
-                put(x, y, PANEL)
-                continue
+    # white keys (with thin background gaps)
+    for y in range(int(kb_top), int(kb_bot)):
+        for x in range(int(kb_left), int(kb_right)):
+            frac = ((x - kb_left) / wkey_w) % 1.0
+            if frac < 0.05:
+                put(x, y, bg_row[y])      # gap shows the background
+            else:
+                put(x, y, WHITE)
 
-            # keyboard area
-            if kb_top <= y < kb_bot and kb_left <= x < kb_right:
-                # white keys with thin gaps
-                rel = (x - kb_left) / wkey_w
-                frac = rel - int(rel)
-                if frac < 0.06:          # gap between white keys
-                    put(x, y, BG)
-                else:
-                    put(x, y, WHITE)
-                # black keys (top ~60% of keyboard), after white keys 0,1,3,4,5
-                if y < kb_top + (kb_bot - kb_top) * 0.6:
-                    for k in (0, 1, 3, 4, 5):
-                        bx = kb_left + (k + 1) * wkey_w
-                        bw = wkey_w * 0.6
-                        if bx - bw / 2 <= x < bx + bw / 2:
-                            put(x, y, BLACK)
-                continue
+    # black keys (upper ~62%), sitting between white keys 0,1,3,4,5
+    bk_bot = kb_top + kb_h * 0.62
+    for k in (0, 1, 3, 4, 5):
+        bx = kb_left + (k + 1) * wkey_w
+        bw = wkey_w * 0.62
+        for y in range(int(kb_top), int(bk_bot)):
+            for x in range(int(bx - bw / 2), int(bx + bw / 2)):
+                put(x, y, BLACK)
 
-            put(x, y, BG)
+    # subtle centered accent line beneath the keyboard
+    uy0 = int(kb_bot + size * 0.03)
+    uy1 = uy0 + max(2, int(size * 0.013))
+    for y in range(uy0, uy1):
+        for x in range(int(kb_left), int(kb_right)):
+            put(x, y, ACCENT)
 
-    # encode PNG
+    # encode PNG (8-bit RGB)
     raw = bytearray()
     for y in range(size):
         raw.append(0)
         raw.extend(px[y * size * 3:(y + 1) * size * 3])
 
     def chunk(typ, data):
-        c = struct.pack('>I', len(data)) + typ + data
-        return c + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
+        return struct.pack('>I', len(data)) + typ + data + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
 
-    sig = b'\x89PNG\r\n\x1a\n'
-    ihdr = struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0)  # 8-bit RGB
-    idat = zlib.compress(bytes(raw), 9)
     with open(path, 'wb') as f:
-        f.write(sig + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b''))
+        f.write(b'\x89PNG\r\n\x1a\n')
+        f.write(chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0)))
+        f.write(chunk(b'IDAT', zlib.compress(bytes(raw), 9)))
+        f.write(chunk(b'IEND', b''))
     print('wrote', path, size)
 
 for name, s in [('icon-180.png', 180), ('icon-192.png', 192), ('icon-512.png', 512)]:
