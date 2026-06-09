@@ -192,6 +192,10 @@
     background:linear-gradient(180deg,#d3e3ff,#6aa9ff);box-shadow:0 2px 6px rgba(0,0,0,.45)}
   .pend-pivot{position:absolute;left:50%;bottom:13px;transform:translate(-50%,50%);width:15px;height:15px;border-radius:50%;
     background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),.6);z-index:3}
+  /* compact in-session pendulum (Chords/Scales) — only shown while the metronome runs */
+  .mini-pend{display:none;height:98px;overflow:hidden;margin:0 0 6px}
+  body.met-on .mini-pend{display:block}
+  .mini-pend .pendulum{margin:0 auto;transform:scale(.62);transform-origin:center top}
   /* subdivision segmented control */
   .met-sub{margin-top:20px;text-align:center}
   .met-sub-cap{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-weight:700;margin-bottom:8px}
@@ -223,6 +227,9 @@
   .rstep button:active{transform:scale(.93)}
   .rstep b{min-width:30px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
   .rstep small{color:var(--muted);font-size:11px;margin-left:-7px;letter-spacing:1px}
+  .beat-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text);
+    background:rgba(255,255,255,.12);border:1px solid var(--line);padding:2px 7px;border-radius:20px;display:none;margin-left:2px}
+  .beat-badge.on{display:inline-block}
 </style>
 </head>
 <body>
@@ -246,6 +253,10 @@
       <span class="metbar-bpm js-bpm">100</span>
       <button class="metbar-step" id="chordmet-inc">+</button>
     </div>
+    <div class="mini-pend"><div class="pendulum">
+      <div class="pend-arm js-pend-arm"><div class="pend-bob"></div></div>
+      <div class="pend-pivot"></div><div class="pend-base"></div>
+    </div></div>
     <div class="display" id="chord-display">
       <div class="placeholder">Tap <b>Randomize</b> to get a chord to practice</div>
     </div>
@@ -292,6 +303,10 @@
       <span class="metbar-bpm js-bpm">100</span>
       <button class="metbar-step" id="scalemet-inc">+</button>
     </div>
+    <div class="mini-pend"><div class="pendulum">
+      <div class="pend-arm js-pend-arm"><div class="pend-bob"></div></div>
+      <div class="pend-pivot"></div><div class="pend-base"></div>
+    </div></div>
     <div class="display" id="scale-display">
       <div class="placeholder">Tap <b>Randomize</b> to get a scale to practice</div>
     </div>
@@ -333,7 +348,7 @@
       <button class="stepbtn" id="bpm-inc">+</button>
     </div>
     <div class="pendulum">
-      <div class="pend-arm" id="pend-arm"><div class="pend-bob"></div></div>
+      <div class="pend-arm js-pend-arm" id="pend-arm"><div class="pend-bob"></div></div>
       <div class="pend-pivot"></div>
       <div class="pend-base"></div>
     </div>
@@ -372,11 +387,11 @@
     <div class="ratio"><span class="ratio-a" id="ratio-x">3</span><span class="ratio-sep">:</span><span class="ratio-b" id="ratio-y">2</span></div>
 
     <div class="rrow">
-      <span class="rrow-label"><span class="dot-a"></span>Layer A</span>
+      <span class="rrow-label"><span class="dot-a"></span>Layer A <span class="beat-badge" id="badge-a">beat</span></span>
       <div class="rstep"><button id="rx-dec">−</button><b id="rx-val">3</b><button id="rx-inc">+</button></div>
     </div>
     <div class="rrow">
-      <span class="rrow-label"><span class="dot-b"></span>Layer B</span>
+      <span class="rrow-label"><span class="dot-b"></span>Layer B <span class="beat-badge" id="badge-b">beat</span></span>
       <div class="rstep"><button id="ry-dec">−</button><b id="ry-val">2</b><button id="ry-inc">+</button></div>
     </div>
     <div class="rrow">
@@ -692,13 +707,15 @@ function flashBeat(i){
    exactly on each beat, with a natural gravity-like ease at the turns. */
 const PEND_ANGLE=40;
 let pendPhase=0, pendLast=0, pendRAF=null;
+function setArms(transform, transition){
+  document.querySelectorAll('.js-pend-arm').forEach(arm=>{ arm.style.transition=transition; arm.style.transform=transform; });
+}
 function pendulumLoop(){
   if(!metRunning){ pendRAF=null; return; }
   const now=audioCtx.currentTime;
   pendPhase += (now-pendLast)/(60/state.bpm);
   pendLast=now;
-  const arm=document.getElementById('pend-arm');
-  if(arm){ arm.style.transition='none'; arm.style.transform='rotate('+(PEND_ANGLE*Math.cos(Math.PI*pendPhase)).toFixed(2)+'deg)'; }
+  setArms('rotate('+(PEND_ANGLE*Math.cos(Math.PI*pendPhase)).toFixed(2)+'deg)','none');
   pendRAF=requestAnimationFrame(pendulumLoop);
 }
 function startPendulum(){
@@ -708,8 +725,7 @@ function startPendulum(){
 }
 function stopPendulum(){
   if(pendRAF){ cancelAnimationFrame(pendRAF); pendRAF=null; }
-  const arm=document.getElementById('pend-arm');
-  if(arm){ arm.style.transition='transform .4s ease-out'; arm.style.transform='rotate(0deg)'; }
+  setArms('rotate(0deg)','transform .4s ease-out');
 }
 /* Real vintage metronome click: a single tick sampled from a classic
    mechanical metronome (click.wav). The accented downbeat plays the same
@@ -768,6 +784,7 @@ function updateMetUI(){
     el.textContent = metRunning ? '■' : '▶';
     el.classList.toggle('playing', metRunning);
   });
+  document.body.classList.toggle('met-on', metRunning);   // reveals the in-session pendulums
 }
 function startMet(){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -893,10 +910,16 @@ function rhRender(){
   document.getElementById('rx-val').textContent=state.rhX;
   document.getElementById('ry-val').textContent=state.rhY;
   document.getElementById('rb-val').textContent=state.rhBpm;
+  const anchorA = state.rhX < state.rhY;        // the metronome = the layer with fewer notes
+  document.getElementById('badge-a').classList.toggle('on', anchorA);
+  document.getElementById('badge-b').classList.toggle('on', !anchorA);
 }
+/* The fewer-notes layer is the steady beat: it clicks at exactly rhBpm, so the
+   cycle spans that many beats and the other layer fits evenly across it. */
+function rhCycle(){ return Math.min(state.rhX, state.rhY) * (60/state.rhBpm); }
 function rhResync(){ if(rhRunning){ const t=audioCtx.currentTime+0.08; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
 function rhScheduler(){
-  const cycle=60/state.rhBpm, ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
+  const cycle=rhCycle(), ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
   while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,0.92,0.62,2400); rhNextA+=cycle/state.rhX; }
   while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.14,0.46,3000); rhNextB+=cycle/state.rhY; }
 }
@@ -910,7 +933,7 @@ function rhFlash(id,n,prev,cur){
 }
 function rhLoop(){
   if(!rhRunning){ rhRAF=null; return; }
-  const cycle=60/state.rhBpm;
+  const cycle=rhCycle();
   let phase=((audioCtx.currentTime-rhStart)/cycle)%1; if(phase<0) phase+=1;
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left=(phase*100)+'%';
   rhFlash('rlane-a', state.rhX, rhPrev, phase);
