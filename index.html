@@ -163,6 +163,7 @@
   .addform button{padding:0 18px;border:none;border-radius:11px;
     background:linear-gradient(180deg,var(--teal),#37c2ad);color:#04231f;font-weight:800;font-size:18px}
   .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .hint a{color:var(--accent);text-decoration:none}
 
   /* metronome */
   .met-bpm{text-align:center;margin:18px 0 4px}
@@ -451,6 +452,16 @@
     <button class="bigbtn secondary" id="def-save">⭐ Save current settings as my defaults</button>
     <button class="bigbtn secondary" id="def-restore">↩︎ Restore my defaults</button>
     <button class="bigbtn secondary" id="def-factory">♺ Reset to factory defaults</button>
+
+    <div class="section-title" style="margin-top:26px">About</div>
+    <div class="hint">A small practice tool — chord &amp; scale randomizer, metronome, and polyrhythm trainer. Works fully offline once added to your Home Screen.</div>
+    <button class="bigbtn secondary" id="share-btn" style="margin-top:12px">📤 Share this app</button>
+
+    <div class="section-title" style="margin-top:24px">Privacy</div>
+    <div class="hint">No accounts, no tracking, no ads. Everything runs on your device and your settings never leave it.</div>
+
+    <div class="section-title" style="margin-top:24px">Credits</div>
+    <div class="hint">Metronome click from <a href="https://commons.wikimedia.org/wiki/File:Sound_Classic_Metronome_96.ogg" target="_blank" rel="noopener">“Sound Classic Metronome 96”</a> by Olga Ernst, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</div>
   </section>
 </main>
 
@@ -554,6 +565,12 @@ document.getElementById('def-factory').onclick=()=>{
   if(confirm('Reset everything to the original factory defaults?')){
     localStorage.removeItem(LS); location.reload();
   }
+};
+document.getElementById('share-btn').onclick=async()=>{
+  const url=location.href.split('#')[0];
+  const data={title:'Piano Practice', text:'A little piano practice app — chords, scales, metronome & polyrhythms.', url};
+  if(navigator.share){ try{ await navigator.share(data); }catch(e){} }
+  else { try{ await navigator.clipboard.writeText(url); alert('Link copied to clipboard!'); }catch(e){ prompt('Copy this link:', url); } }
 };
 
 /* ---------- Randomizer logic ---------- */
