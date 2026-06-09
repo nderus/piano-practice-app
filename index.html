@@ -260,6 +260,20 @@
     border-radius:2px;transform-origin:bottom center;transform:rotate(0deg);box-shadow:0 0 8px rgba(255,255,255,.6)}
   .ring-center{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:#fff;
     transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.5)}
+  /* chord shapes reference */
+  .chord-reference{display:none}
+  #view-chords.ref-mode .chord-practice{display:none}
+  #view-chords.ref-mode .chord-reference{display:block}
+  .ref-name{text-align:center;font-size:30px;font-weight:800;margin:4px 0 2px}
+  .ref-notes{text-align:center;font-size:18px;letter-spacing:3px;color:var(--teal);font-weight:600;min-height:22px}
+  .kbd{position:relative;display:flex;height:140px;margin:12px 0 16px;border-radius:10px;overflow:hidden;
+    background:#0c1220;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+  .wk{flex:1;background:linear-gradient(180deg,#f4f7fc,#d7e1f1);border-right:1px solid #243049;position:relative}
+  .wk:last-child{border-right:none}
+  .wk.on{background:linear-gradient(180deg,#bcd6ff,var(--accent))}
+  .bk{position:absolute;top:0;height:62%;background:linear-gradient(180deg,#202a3b,#0a0f18);
+    border-radius:0 0 5px 5px;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+  .bk.on{background:linear-gradient(180deg,var(--accent),var(--accent-press))}
   .beat-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text);
     background:rgba(255,255,255,.12);border:1px solid var(--line);padding:2px 7px;border-radius:20px;display:none;margin-left:2px}
   .beat-badge.on{display:inline-block}
@@ -279,6 +293,11 @@
 <main>
   <!-- ===== CHORDS ===== -->
   <section class="view active" id="view-chords">
+    <div class="subseg chord-mode" id="chord-mode" style="max-width:240px;margin:2px auto 12px">
+      <button data-cmode="practice">Practice</button>
+      <button data-cmode="reference">Reference</button>
+    </div>
+    <div class="chord-practice">
     <div class="metbar">
       <button class="metbar-toggle js-met-mini-toggle" id="chordmet-toggle" aria-label="Start/stop metronome">▶</button>
       <button class="metbar-pendtoggle" id="chordmet-pendtoggle" aria-label="Pendulum behind the name"><span class="pti"></span></button>
@@ -320,6 +339,19 @@
         <div class="chips" id="chord-roots"></div>
       </div>
     </details>
+    </div><!-- /chord-practice -->
+
+    <div class="chord-reference">
+      <div class="ref-name" id="ref-name">C Major</div>
+      <div class="ref-notes" id="ref-notes"></div>
+      <div class="kbd" id="ref-kbd"></div>
+      <div class="section-title">Root</div>
+      <div class="chips" id="ref-roots"></div>
+      <div class="section-title">Chord type</div>
+      <div class="chips" id="ref-types"></div>
+      <div class="section-title">Inversion</div>
+      <div class="chips" id="ref-invs"></div>
+    </div>
   </section>
 
   <!-- ===== SCALES ===== -->
@@ -516,7 +548,7 @@ const state = {
   showPend: saved.showPend !== undefined ? saved.showPend : true,
   chordRoots: saved.chordRoots || NOTES.map((_,i)=>i),
   scaleRoots: saved.scaleRoots || NOTES.map((_,i)=>i),
-  bpm: saved.bpm || 100,
+  bpm: saved.bpm || 60,
   beats: saved.beats || 4,
   subdivision: saved.subdivision || 1,
   rhX: saved.rhX || 3,
@@ -525,6 +557,7 @@ const state = {
   rhA: saved.rhA !== undefined ? saved.rhA : true,
   rhB: saved.rhB !== undefined ? saved.rhB : true,
   rhView: saved.rhView || 'strip',
+  chordMode: saved.chordMode || 'practice',
 };
 
 /* ---------- Tabs ---------- */
@@ -671,6 +704,57 @@ function updateScaleBtn(){ document.getElementById('scale-next').textContent = s
 
 document.getElementById('chord-next').onclick = nextChord;
 document.getElementById('scale-next').onclick = nextScale;
+
+/* ----- Chord shapes reference ----- */
+let refRoot=0, refType=DEFAULT_CHORDS[0], refInv=0;
+function refPositions(){
+  const n=refType.intervals.length;
+  const pcs=refType.intervals.map(iv=>(refRoot+iv)%12);
+  const order=[]; for(let i=0;i<n;i++) order.push(pcs[(refInv+i)%n]);
+  const pos=[]; let prev=-1;
+  for(const p0 of order){ let p=p0; while(p<=prev) p+=12; pos.push(p); prev=p; }
+  return {pos, order};
+}
+function renderKbd(hl){
+  const kbd=document.getElementById('ref-kbd'); kbd.innerHTML='';
+  const whitePCs=[0,2,4,5,7,9,11], nWhite=14, ww=100/nWhite;
+  for(let i=0;i<nWhite;i++){
+    const st=Math.floor(i/7)*12+whitePCs[i%7];
+    const k=document.createElement('div'); k.className='wk'+(hl.has(st)?' on':''); kbd.appendChild(k);
+  }
+  const after=[0,1,3,4,5], bpc=[1,3,6,8,10], bw=ww*0.62;
+  for(let o=0;o<2;o++) for(let j=0;j<5;j++){
+    const gw=o*7+after[j], st=o*12+bpc[j];
+    const b=document.createElement('div'); b.className='bk'+(hl.has(st)?' on':'');
+    b.style.width=bw+'%'; b.style.left=((gw+1)*ww-bw/2)+'%'; kbd.appendChild(b);
+  }
+}
+function refChip(box, label, on, fn){
+  const el=document.createElement('div'); el.className='chip'+(on?' on':''); el.innerHTML='<span>'+label+'</span>'; el.onclick=fn; box.appendChild(el);
+}
+function updateRef(){
+  const {pos, order}=refPositions();
+  renderKbd(new Set(pos));
+  document.getElementById('ref-notes').textContent=order.map(pc=>NOTES[pc]).join('  ');
+  const inv=refInv?' · '+(INV_NAMES[refInv]||refInv+' inv'):'';
+  document.getElementById('ref-name').textContent=NOTES[refRoot]+' '+refType.name+inv;
+  const rc=document.getElementById('ref-roots'); rc.innerHTML='';
+  NOTES.forEach((nm,i)=>refChip(rc, nm, i===refRoot, ()=>{ refRoot=i; updateRef(); }));
+  const tc=document.getElementById('ref-types'); tc.innerHTML='';
+  DEFAULT_CHORDS.forEach(t=>refChip(tc, t.name, t.id===refType.id, ()=>{ refType=t; if(refInv>=t.intervals.length) refInv=0; updateRef(); }));
+  const ic=document.getElementById('ref-invs'); ic.innerHTML='';
+  for(let i=0;i<refType.intervals.length;i++) refChip(ic, i===0?'Root':(INV_NAMES[i]||i+' inv'), i===refInv, ()=>{ refInv=i; updateRef(); });
+}
+const chordMode=document.getElementById('chord-mode');
+function applyChordMode(m){
+  document.getElementById('view-chords').classList.toggle('ref-mode', m==='reference');
+  chordMode.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.cmode===m));
+  state.chordMode=m; save();
+  if(m==='reference'){ if(metRunning) stopMet(); updateRef(); }
+}
+chordMode.querySelectorAll('button').forEach(b=>{ b.onclick=()=>applyChordMode(b.dataset.cmode); });
+updateRef();
+applyChordMode(state.chordMode);
 
 /* ---------- Settings UI builders ---------- */
 function renderChips(containerId, types, onToggle, onDelete){
