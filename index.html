@@ -619,23 +619,32 @@ function flashBeat(i){
   document.querySelectorAll('.js-met-pulse').forEach(p=>{
     p.classList.add('pulse'); setTimeout(()=>p.classList.remove('pulse'), 100);
   });
-  swingPendulum();
 }
 
-/* Pendulum: swing to the opposite extreme on each beat, arriving exactly on the
-   next click. Transition lasts one beat with an ease-in-out (gravity-like) curve. */
+/* Pendulum driven directly off the audio clock via requestAnimationFrame, so it
+   never drifts from the clicks (the old setTimeout-per-beat swing could lag under
+   load). angle = A*cos(pi*phase); phase advances by elapsed beats -> an extreme
+   exactly on each beat, with a natural gravity-like ease at the turns. */
 const PEND_ANGLE=40;
-let pendSide=-1;
-function swingPendulum(){
-  const arm=document.getElementById('pend-arm'); if(!arm) return;
-  pendSide*=-1;
-  arm.style.transitionDuration=(60/state.bpm)+'s';
-  arm.style.transform='rotate('+(pendSide*PEND_ANGLE)+'deg)';
+let pendPhase=0, pendLast=0, pendRAF=null;
+function pendulumLoop(){
+  if(!metRunning){ pendRAF=null; return; }
+  const now=audioCtx.currentTime;
+  pendPhase += (now-pendLast)/(60/state.bpm);
+  pendLast=now;
+  const arm=document.getElementById('pend-arm');
+  if(arm){ arm.style.transition='none'; arm.style.transform='rotate('+(PEND_ANGLE*Math.cos(Math.PI*pendPhase)).toFixed(2)+'deg)'; }
+  pendRAF=requestAnimationFrame(pendulumLoop);
 }
-function resetPendulum(active){
-  const arm=document.getElementById('pend-arm'); if(!arm) return;
-  if(active){ pendSide=-1; arm.style.transitionDuration='0s'; arm.style.transform='rotate('+(-PEND_ANGLE)+'deg)'; }
-  else { arm.style.transitionDuration='.4s'; arm.style.transform='rotate(0deg)'; }
+function startPendulum(){
+  pendLast=audioCtx.currentTime;
+  pendPhase = -(nextNoteTime-pendLast)/(60/state.bpm);   // line the first beat up with an extreme
+  if(!pendRAF) pendRAF=requestAnimationFrame(pendulumLoop);
+}
+function stopPendulum(){
+  if(pendRAF){ cancelAnimationFrame(pendRAF); pendRAF=null; }
+  const arm=document.getElementById('pend-arm');
+  if(arm){ arm.style.transition='transform .4s ease-out'; arm.style.transform='rotate(0deg)'; }
 }
 /* Real vintage metronome click: a single tick sampled from a classic
    mechanical metronome (click.wav). The accented downbeat plays the same
@@ -696,7 +705,7 @@ function startMet(){
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
     metRunning=true; beatInBar=0; subIndex=0; nextNoteTime=audioCtx.currentTime+0.12;
-    resetPendulum(true);
+    startPendulum();
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
   }).catch(()=>{ metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
@@ -704,7 +713,7 @@ function startMet(){
 function stopMet(){
   metRunning=false; clearInterval(timerId);
   document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('on'));
-  resetPendulum(false);
+  stopPendulum();
   updateMetUI();
 }
 function toggleMet(){ metRunning ? stopMet() : startMet(); }
