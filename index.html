@@ -875,9 +875,14 @@ function updateMetUI(){
   });
   document.body.classList.toggle('met-running', metRunning);
 }
-function startMet(){
+function ensureAudio(){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  // tell iOS Safari this is media playback so it ignores the silent/ring switch
+  try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}
   if(audioCtx.state==='suspended') audioCtx.resume();
+}
+function startMet(){
+  ensureAudio();
   document.getElementById('met-toggle').textContent='…';
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
@@ -1045,8 +1050,7 @@ function rhLoop(){
   rhRAF=requestAnimationFrame(rhLoop);
 }
 function startRhythm(){
-  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==='suspended') audioCtx.resume();
+  ensureAudio();
   document.getElementById('rhythm-toggle').textContent='…';
   loadClick().then(()=>{
     rhRunning=true;
