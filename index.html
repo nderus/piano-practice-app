@@ -182,7 +182,7 @@
     border:1px solid var(--line);color:var(--text);font-size:22px;font-weight:700;transition:.1s}
   .met-sig button:active{transform:scale(.94)}
   /* swinging pendulum */
-  .pendulum{position:relative;width:150px;height:150px;margin:4px auto 6px}
+  .pendulum{position:relative;width:200px;height:150px;margin:4px auto 6px}
   .pend-base{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:96px;height:14px;
     border-radius:8px 8px 5px 5px;background:linear-gradient(180deg,#243247,#161f2d);border:1px solid var(--line)}
   .pend-arm{position:absolute;left:50%;bottom:13px;width:5px;height:126px;margin-left:-2.5px;border-radius:3px;
@@ -192,6 +192,12 @@
     background:linear-gradient(180deg,#d3e3ff,#6aa9ff);box-shadow:0 2px 6px rgba(0,0,0,.45)}
   .pend-pivot{position:absolute;left:50%;bottom:13px;transform:translate(-50%,50%);width:15px;height:15px;border-radius:50%;
     background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),.6);z-index:3}
+  /* subdivision segmented control */
+  .met-sub{margin-top:20px;text-align:center}
+  .met-sub-cap{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-weight:700;margin-bottom:8px}
+  .subseg{display:flex;gap:4px;padding:5px;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:13px;max-width:300px;margin:0 auto}
+  .subseg button{flex:1;padding:9px 4px;border:none;border-radius:9px;font-size:14px;font-weight:600;background:transparent;color:var(--muted);transition:.15s}
+  .subseg button.active{color:#fff;background:linear-gradient(180deg,var(--accent),var(--accent-press));box-shadow:0 4px 12px rgba(var(--accent-rgb),.35)}
 </style>
 </head>
 <body>
@@ -317,6 +323,15 @@
       <span id="sig-label">4 beats / bar</span>
       <button id="sig-inc">+</button>
     </div>
+    <div class="met-sub">
+      <span class="met-sub-cap">Subdivision</span>
+      <div class="subseg" id="subseg">
+        <button data-sub="1">Off</button>
+        <button data-sub="2">Duplets</button>
+        <button data-sub="3">Triplets</button>
+        <button data-sub="4">Quads</button>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -372,6 +387,7 @@ const state = {
   scaleRoots: saved.scaleRoots || NOTES.map((_,i)=>i),
   bpm: saved.bpm || 100,
   beats: saved.beats || 4,
+  subdivision: saved.subdivision || 1,
 };
 
 /* ---------- Tabs ---------- */
@@ -608,7 +624,7 @@ function flashBeat(i){
 
 /* Pendulum: swing to the opposite extreme on each beat, arriving exactly on the
    next click. Transition lasts one beat with an ease-in-out (gravity-like) curve. */
-const PEND_ANGLE=26;
+const PEND_ANGLE=40;
 let pendSide=-1;
 function swingPendulum(){
   const arm=document.getElementById('pend-arm'); if(!arm) return;
@@ -637,25 +653,30 @@ function loadClick(){
     }));
   return clickLoad;
 }
-function clickAt(time, accent){
+function playClick(time, rate, gain){
   if(!clickBuffer) return;
   const src=audioCtx.createBufferSource();
-  src.buffer=clickBuffer;
-  src.playbackRate.value = accent ? 1.12 : 1.0;
-  const g=audioCtx.createGain();
-  g.gain.value = accent ? 1.0 : 0.82;
+  src.buffer=clickBuffer; src.playbackRate.value=rate;
+  const g=audioCtx.createGain(); g.gain.value=gain;
   src.connect(g); g.connect(audioCtx.destination);
   src.start(time);
 }
+function clickAt(time, accent){ playClick(time, accent?1.12:1.0, accent?1.0:0.82); }
+let subIndex=0;
 function scheduler(){
-  const secPerBeat = 60.0/state.bpm;
+  const sub = state.subdivision || 1;
+  const secPerTick = (60.0/state.bpm) / sub;
   while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
-    const accent = beatInBar===0;
-    clickAt(nextNoteTime, accent);
-    const beatToFlash=beatInBar, delay=(nextNoteTime-audioCtx.currentTime)*1000;
-    setTimeout(()=>flashBeat(beatToFlash), Math.max(0,delay));
-    nextNoteTime += secPerBeat;
-    beatInBar = (beatInBar+1) % state.beats;
+    if(subIndex===0){
+      clickAt(nextNoteTime, beatInBar===0);          // main beat (accent on downbeat)
+      const beatToFlash=beatInBar, delay=(nextNoteTime-audioCtx.currentTime)*1000;
+      setTimeout(()=>flashBeat(beatToFlash), Math.max(0,delay));
+    } else {
+      playClick(nextNoteTime, 1.08, 0.34);            // soft subdivision tick
+    }
+    nextNoteTime += secPerTick;
+    subIndex++;
+    if(subIndex>=sub){ subIndex=0; beatInBar=(beatInBar+1)%state.beats; }
   }
 }
 /* Keep every metronome control (the Metronome tab + the in-session bars) in sync. */
@@ -674,7 +695,7 @@ function startMet(){
   document.getElementById('met-toggle').textContent='…';
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
-    metRunning=true; beatInBar=0; nextNoteTime=audioCtx.currentTime+0.12;
+    metRunning=true; beatInBar=0; subIndex=0; nextNoteTime=audioCtx.currentTime+0.12;
     resetPendulum(true);
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
@@ -743,6 +764,20 @@ function setBeats(v){
 }
 document.getElementById('sig-inc').onclick=()=>setBeats(state.beats+1);
 document.getElementById('sig-dec').onclick=()=>setBeats(state.beats-1);
+
+/* subdivision selector (off / duplets / triplets / quadruplets) */
+const subseg=document.getElementById('subseg');
+function renderSubseg(){
+  subseg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', +b.dataset.sub===state.subdivision));
+}
+subseg.querySelectorAll('button').forEach(b=>{
+  b.onclick=()=>{
+    state.subdivision=+b.dataset.sub;
+    if(metRunning) subIndex=0;     // re-align subdivisions to the next beat
+    renderSubseg(); save();
+  };
+});
+renderSubseg();
 
 /* tap tempo */
 let taps=[];
