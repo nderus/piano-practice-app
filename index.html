@@ -80,7 +80,7 @@
   .display .progress{display:inline-block;font-size:12.5px;margin-top:20px;color:var(--muted);font-weight:600;
     background:rgba(255,255,255,.05);border:1px solid var(--hair);padding:5px 12px;border-radius:20px;align-self:center}
   .display .placeholder{font-size:17px;color:var(--muted);line-height:1.5}
-  .display>*{animation:rise .28s cubic-bezier(.2,.7,.3,1) both}
+  .display-fg>*{animation:rise .28s cubic-bezier(.2,.7,.3,1) both}
   .display .type{animation-delay:.03s}
   .display .inv{animation-delay:.05s}
   .display .notes{animation-delay:.07s}
@@ -192,16 +192,20 @@
     background:linear-gradient(180deg,#d3e3ff,#6aa9ff);box-shadow:0 2px 6px rgba(0,0,0,.45)}
   .pend-pivot{position:absolute;left:50%;bottom:13px;transform:translate(-50%,50%);width:15px;height:15px;border-radius:50%;
     background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),.6);z-index:3}
-  /* compact pendulum docked inside the metronome bar (Chords/Scales), toggleable */
-  .metbar-pend{position:relative;width:30px;height:36px;flex:none;display:none}
-  body.pend-on .metbar-pend{display:block}
-  body.pend-on .metbar .metbar-dot{display:none}
-  .mp-arm{position:absolute;left:50%;bottom:5px;width:3px;height:26px;margin-left:-1.5px;border-radius:2px;
-    transform-origin:bottom center;background:linear-gradient(180deg,var(--accent),var(--accent-press));transition:transform .35s ease-out}
-  .mp-bob{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:11px;height:8px;border-radius:3px;
-    background:linear-gradient(180deg,#d3e3ff,#6aa9ff)}
-  .mp-pivot{position:absolute;left:50%;bottom:5px;transform:translate(-50%,40%);width:7px;height:7px;border-radius:50%;
-    background:var(--accent);box-shadow:0 0 6px rgba(var(--accent-rgb),.6)}
+  /* faint pendulum behind the chord/scale name; appears while the metronome runs */
+  .display-fg{position:relative;z-index:1;width:100%}
+  .display-pend{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:0;pointer-events:none;opacity:.15}
+  body.pend-on.met-running .display-pend{display:flex}
+  .dp-arm{position:absolute;left:50%;bottom:22px;width:6px;height:150px;margin-left:-3px;border-radius:3px;
+    transform-origin:bottom center;background:#a9c0ea;transition:transform .35s ease-out}
+  .dp-bob{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:26px;height:18px;border-radius:6px;background:#a9c0ea}
+  /* secondary toggle in the bar — shown only after the metronome is on */
+  .metbar-pendtoggle{display:none;width:34px;height:34px;border-radius:9px;flex:none;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.06);border:1px solid var(--line)}
+  body.met-running .metbar-pendtoggle{display:inline-flex}
+  .metbar-pendtoggle.active{background:rgba(var(--accent-rgb),.18);border-color:rgba(var(--accent-rgb),.5)}
+  .pti{display:block;width:2px;height:15px;border-radius:2px;background:var(--muted);transform:rotate(22deg);transform-origin:bottom center}
+  .metbar-pendtoggle.active .pti{background:var(--accent)}
   /* subdivision segmented control */
   .met-sub{margin-top:20px;text-align:center}
   .met-sub-cap{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-weight:700;margin-bottom:8px}
@@ -272,15 +276,18 @@
   <section class="view active" id="view-chords">
     <div class="metbar">
       <button class="metbar-toggle js-met-mini-toggle" id="chordmet-toggle" aria-label="Start/stop metronome">▶</button>
+      <button class="metbar-pendtoggle" id="chordmet-pendtoggle" aria-label="Pendulum behind the name"><span class="pti"></span></button>
       <span class="metbar-dot js-met-pulse"></span>
-      <div class="metbar-pend"><div class="mp-arm js-pend-arm"><div class="mp-bob"></div></div><div class="mp-pivot"></div></div>
       <span class="metbar-label">Metronome</span>
       <button class="metbar-step" id="chordmet-dec">−</button>
       <span class="metbar-bpm js-bpm">100</span>
       <button class="metbar-step" id="chordmet-inc">+</button>
     </div>
-    <div class="display" id="chord-display">
-      <div class="placeholder">Tap <b>Randomize</b> to get a chord to practice</div>
+    <div class="display">
+      <div class="display-pend"><div class="dp-arm js-pend-arm"><div class="dp-bob"></div></div></div>
+      <div class="display-fg" id="chord-display">
+        <div class="placeholder">Tap <b>Randomize</b> to get a chord to practice</div>
+      </div>
     </div>
     <button class="bigbtn" id="chord-next">🎲 Randomize</button>
 
@@ -308,10 +315,6 @@
           <span>Show the notes</span>
           <label class="switch"><input type="checkbox" id="chord-shownotes" checked><span class="slider"></span></label>
         </div>
-        <div class="toggle-row">
-          <span>Metronome pendulum</span>
-          <label class="switch"><input type="checkbox" id="chord-pend"><span class="slider"></span></label>
-        </div>
 
         <div class="section-title">Roots allowed</div>
         <div class="chips" id="chord-roots"></div>
@@ -323,15 +326,18 @@
   <section class="view" id="view-scales">
     <div class="metbar">
       <button class="metbar-toggle js-met-mini-toggle" id="scalemet-toggle" aria-label="Start/stop metronome">▶</button>
+      <button class="metbar-pendtoggle" id="scalemet-pendtoggle" aria-label="Pendulum behind the name"><span class="pti"></span></button>
       <span class="metbar-dot js-met-pulse"></span>
-      <div class="metbar-pend"><div class="mp-arm js-pend-arm"><div class="mp-bob"></div></div><div class="mp-pivot"></div></div>
       <span class="metbar-label">Metronome</span>
       <button class="metbar-step" id="scalemet-dec">−</button>
       <span class="metbar-bpm js-bpm">100</span>
       <button class="metbar-step" id="scalemet-inc">+</button>
     </div>
-    <div class="display" id="scale-display">
-      <div class="placeholder">Tap <b>Randomize</b> to get a scale to practice</div>
+    <div class="display">
+      <div class="display-pend"><div class="dp-arm js-pend-arm"><div class="dp-bob"></div></div></div>
+      <div class="display-fg" id="scale-display">
+        <div class="placeholder">Tap <b>Randomize</b> to get a scale to practice</div>
+      </div>
     </div>
     <button class="bigbtn" id="scale-next">🎲 Randomize</button>
 
@@ -354,10 +360,6 @@
         <div class="toggle-row">
           <span>Show the notes</span>
           <label class="switch"><input type="checkbox" id="scale-shownotes" checked><span class="slider"></span></label>
-        </div>
-        <div class="toggle-row">
-          <span>Metronome pendulum</span>
-          <label class="switch"><input type="checkbox" id="scale-pend"><span class="slider"></span></label>
         </div>
 
         <div class="section-title">Roots allowed</div>
@@ -712,10 +714,12 @@ const scaleNR=document.getElementById('scale-norepeat');
 scaleNR.checked=state.scaleNoRepeat;
 scaleNR.onchange=()=>{ state.scaleNoRepeat=scaleNR.checked; invalidateScaleQueue(); updateScaleBtn(); save(); };
 
-const chordPend=document.getElementById('chord-pend'), scalePend=document.getElementById('scale-pend');
-function applyPend(){ document.body.classList.toggle('pend-on', state.showPend); chordPend.checked=state.showPend; scalePend.checked=state.showPend; }
-chordPend.onchange=()=>{ state.showPend=chordPend.checked; applyPend(); save(); };
-scalePend.onchange=()=>{ state.showPend=scalePend.checked; applyPend(); save(); };
+const pendToggles=[document.getElementById('chordmet-pendtoggle'), document.getElementById('scalemet-pendtoggle')];
+function applyPend(){
+  document.body.classList.toggle('pend-on', state.showPend);
+  pendToggles.forEach(b=>b.classList.toggle('active', state.showPend));
+}
+pendToggles.forEach(b=>b.onclick=()=>{ state.showPend=!state.showPend; applyPend(); save(); });
 applyPend();
 
 refreshChordSettings();
@@ -842,6 +846,7 @@ function updateMetUI(){
     el.textContent = metRunning ? '■' : '▶';
     el.classList.toggle('playing', metRunning);
   });
+  document.body.classList.toggle('met-running', metRunning);
 }
 function startMet(){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
