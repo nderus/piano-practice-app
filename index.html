@@ -233,6 +233,25 @@
   .rstep button:active{transform:scale(.93)}
   .rstep b{min-width:30px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
   .rstep small{color:var(--muted);font-size:11px;margin-left:-7px;letter-spacing:1px}
+  /* ring view */
+  .ring-wrap{display:none;justify-content:center;margin:6px 0 2px}
+  #view-rhythm.show-ring .rview-strip{display:none}
+  #view-rhythm.show-ring .ring-wrap{display:flex}
+  .ring{position:relative;width:230px;height:230px}
+  .ring-circle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(255,255,255,.10)}
+  .ring-outer{width:200px;height:200px}
+  .ring-inner{width:130px;height:130px}
+  .ring-lane{position:absolute;left:50%;top:50%;width:0;height:0}
+  .rdot{position:absolute;left:0;top:0;width:15px;height:15px;border-radius:50%;margin:-7.5px;transition:background .05s,box-shadow .05s}
+  .rdot.accent{width:19px;height:19px;margin:-9.5px}
+  #ring-a .rdot{background:rgba(var(--accent-rgb),.4)}
+  #ring-b .rdot{background:rgba(var(--teal-rgb),.4)}
+  #ring-a .rdot.hit{background:var(--accent);box-shadow:0 0 12px rgba(var(--accent-rgb),.85)}
+  #ring-b .rdot.hit{background:var(--teal);box-shadow:0 0 12px rgba(var(--teal-rgb),.85)}
+  .ring-hand{position:absolute;left:calc(50% - 1px);bottom:50%;width:2px;height:100px;background:#fff;opacity:.85;
+    border-radius:2px;transform-origin:bottom center;transform:rotate(0deg);box-shadow:0 0 8px rgba(255,255,255,.6)}
+  .ring-center{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:#fff;
+    transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.5)}
   .beat-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text);
     background:rgba(255,255,255,.12);border:1px solid var(--line);padding:2px 7px;border-radius:20px;display:none;margin-left:2px}
   .beat-badge.on{display:inline-block}
@@ -385,11 +404,25 @@
 
   <!-- ===== RHYTHM ===== -->
   <section class="view" id="view-rhythm">
-    <div class="rhythm-strip">
+    <div class="subseg rview-toggle" id="rview-toggle" style="max-width:220px;margin:2px auto 12px">
+      <button data-view="strip">Strip</button>
+      <button data-view="ring">Ring</button>
+    </div>
+    <div class="rhythm-strip rview-strip">
       <div class="rtrack">
         <div class="rlane" id="rlane-a"></div>
         <div class="rlane" id="rlane-b"></div>
         <div class="rplayhead" id="rplayhead"></div>
+      </div>
+    </div>
+    <div class="ring-wrap rview-ring">
+      <div class="ring">
+        <div class="ring-circle ring-outer"></div>
+        <div class="ring-circle ring-inner"></div>
+        <div class="ring-lane" id="ring-a"></div>
+        <div class="ring-lane" id="ring-b"></div>
+        <div class="ring-hand" id="ring-hand"></div>
+        <div class="ring-center"></div>
       </div>
     </div>
     <div class="ratio"><span class="ratio-a" id="ratio-x">3</span><span class="ratio-sep">:</span><span class="ratio-b" id="ratio-y">2</span></div>
@@ -475,6 +508,7 @@ const state = {
   rhBpm: saved.rhBpm || 52,
   rhA: saved.rhA !== undefined ? saved.rhA : true,
   rhB: saved.rhB !== undefined ? saved.rhB : true,
+  rhView: saved.rhView || 'strip',
 };
 
 /* ---------- Tabs ---------- */
@@ -925,9 +959,20 @@ function rhRenderLane(id,n){
     lane.appendChild(m);
   }
 }
+function renderRingLane(id,n,R){
+  const lane=document.getElementById(id); lane.innerHTML='';
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');
+    d.className='rdot'+(i===0?' accent':'');
+    d.style.transform='rotate('+(i/n*360)+'deg) translateY(-'+R+'px)';
+    lane.appendChild(d);
+  }
+}
 function rhRender(){
   rhRenderLane('rlane-a', state.rhX);
   rhRenderLane('rlane-b', state.rhY);
+  renderRingLane('ring-a', state.rhX, 100);
+  renderRingLane('ring-b', state.rhY, 65);
   document.getElementById('ratio-x').textContent=state.rhX;
   document.getElementById('ratio-y').textContent=state.rhY;
   document.getElementById('rx-val').textContent=state.rhX;
@@ -959,8 +1004,11 @@ function rhLoop(){
   const cycle=rhCycle();
   let phase=((audioNow()-rhStart)/cycle)%1; if(phase<0) phase+=1;
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left=(phase*100)+'%';
+  const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate('+(phase*360)+'deg)';
   rhFlash('rlane-a', state.rhX, rhPrev, phase);
   rhFlash('rlane-b', state.rhY, rhPrev, phase);
+  rhFlash('ring-a', state.rhX, rhPrev, phase);
+  rhFlash('ring-b', state.rhY, rhPrev, phase);
   rhPrev=phase;
   rhRAF=requestAnimationFrame(rhLoop);
 }
@@ -981,7 +1029,8 @@ function stopRhythm(){
   rhRunning=false; clearInterval(rhTimer);
   if(rhRAF){ cancelAnimationFrame(rhRAF); rhRAF=null; }
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left='0%';
-  document.querySelectorAll('#view-rhythm .rmark').forEach(m=>m.classList.remove('hit'));
+  const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate(0deg)';
+  document.querySelectorAll('#view-rhythm .rmark, #view-rhythm .rdot').forEach(m=>m.classList.remove('hit'));
   document.getElementById('rhythm-toggle').textContent='▶ Start';
 }
 document.getElementById('rhythm-toggle').onclick=()=>{ rhRunning?stopRhythm():startRhythm(); };
@@ -999,6 +1048,13 @@ const rhSB=document.getElementById('rh-sb'); rhSB.checked=state.rhB; rhSB.onchan
 const rbVal=document.getElementById('rb-val');
 rbVal.style.cursor='pointer'; rbVal.title='Tap to type a tempo (30–200)';
 rbVal.addEventListener('click', ()=>startNumEdit(rbVal, ()=>state.rhBpm, rhSetBpm));
+const rviewToggle=document.getElementById('rview-toggle');
+function applyRView(){
+  document.getElementById('view-rhythm').classList.toggle('show-ring', state.rhView==='ring');
+  rviewToggle.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.view===state.rhView));
+}
+rviewToggle.querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ state.rhView=b.dataset.view; applyRView(); save(); }; });
+applyRView();
 rhRender();
 
 /* ---------- Service worker (offline) ---------- */
