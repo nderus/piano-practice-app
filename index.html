@@ -111,6 +111,11 @@
     background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);transition:.1s}
   .metbar-step:active{transform:scale(.93)}
   .metbar-bpm{min-width:48px;text-align:center;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+  /* tap-to-type BPM */
+  .js-bpm{cursor:pointer}
+  .bpm-input{color:#fff;-webkit-text-fill-color:#fff;background:transparent;border:none;
+    border-bottom:2px solid var(--accent);text-align:center;outline:none;padding:0 2px;margin:0;
+    width:3ch;line-height:1;font-variant-numeric:tabular-nums}
 
   /* settings */
   details.settings{margin-top:16px;background:rgba(255,255,255,.035);border:1px solid var(--hair);
@@ -653,6 +658,38 @@ document.getElementById('met-toggle').onclick=toggleMet;
   document.getElementById(p+'-toggle').onclick=toggleMet;
   document.getElementById(p+'-dec').onclick=()=>setBpm(state.bpm-1);
   document.getElementById(p+'-inc').onclick=()=>setBpm(state.bpm+1);
+});
+
+/* Tap a BPM number to type an exact value (clamped to 40–240). */
+function startBpmEdit(el){
+  if(document.querySelector('.bpm-input')) return;            // one editor at a time
+  const cs=getComputedStyle(el);
+  const input=document.createElement('input');
+  input.type='text'; input.inputMode='numeric'; input.maxLength=3; input.value=state.bpm;
+  input.className='bpm-input';
+  input.style.fontSize=cs.fontSize; input.style.fontWeight=cs.fontWeight; input.style.fontFamily=cs.fontFamily;
+  const parent=el.parentNode;
+  parent.replaceChild(input, el);
+  input.focus(); input.select();
+  let done=false;
+  const commit=(keep)=>{
+    if(done) return; done=true;
+    parent.replaceChild(el, input);
+    if(keep){
+      let v=parseInt(input.value,10);
+      if(!isNaN(v)) setBpm(v);                                // setBpm clamps to 40–240
+    }
+    updateMetUI();
+  };
+  input.addEventListener('blur', ()=>commit(true));
+  input.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); commit(true); }
+    else if(e.key==='Escape'){ e.preventDefault(); commit(false); }
+  });
+}
+document.querySelectorAll('.js-bpm').forEach(el=>{
+  el.title='Tap to type a BPM (40–240)';
+  el.addEventListener('click', ()=>startBpmEdit(el));
 });
 
 function setBpm(v){
