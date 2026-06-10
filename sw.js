@@ -1,5 +1,5 @@
 /* Simple offline cache for Piano Practice (PWA). Bump CACHE when files change. */
-const CACHE = 'piano-practice-v28';
+const CACHE = 'piano-practice-v29';
 const ASSETS = [
   './',
   './index.html',

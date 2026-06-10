@@ -412,15 +412,15 @@
       <button class="stepbtn" id="bpm-inc">+</button>
     </div>
     <div class="chips" id="bpm-recents" style="justify-content:center;min-height:0"></div>
+    <div class="met-controls" style="margin-top:12px">
+      <button class="bigbtn" id="met-toggle" style="max-width:220px">▶ Start</button>
+    </div>
     <div class="pendulum">
       <div class="pend-arm js-pend-arm" id="pend-arm"><div class="pend-bob"></div></div>
       <div class="pend-pivot"></div>
       <div class="pend-base"></div>
     </div>
     <div class="beats" id="beat-dots"></div>
-    <div class="met-controls">
-      <button class="bigbtn" id="met-toggle" style="max-width:220px">▶ Start</button>
-    </div>
     <div class="met-controls" style="margin-top:14px">
       <button class="bigbtn secondary" id="tap-tempo" style="max-width:220px;margin-top:0">Tap tempo</button>
     </div>
@@ -464,6 +464,7 @@
       </div>
     </div>
     <div class="ratio"><span class="ratio-a" id="ratio-x">3</span><span class="ratio-sep">:</span><span class="ratio-b" id="ratio-y">2</span></div>
+    <button class="bigbtn" id="rhythm-toggle" style="margin:4px 0 14px">▶ Start</button>
 
     <div class="rrow">
       <span class="rrow-label"><span class="dot-a"></span>Layer A <span class="beat-badge" id="badge-a">beat</span></span>
@@ -482,8 +483,6 @@
       <label class="switch"><input type="checkbox" id="rh-sa" checked><span class="slider"></span></label></div>
     <div class="toggle-row"><span class="rrow-label"><span class="dot-b"></span>Sound layer B</span>
       <label class="switch"><input type="checkbox" id="rh-sb" checked><span class="slider"></span></label></div>
-
-    <button class="bigbtn" id="rhythm-toggle" style="margin-top:18px">▶ Start</button>
   </section>
 
   <!-- ===== SETTINGS ===== -->
@@ -878,7 +877,12 @@ async function acquireWake(){
 }
 function releaseWake(){ if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }
 function syncWake(){ if(metRunning||rhRunning) acquireWake(); else releaseWake(); }
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') syncWake(); });
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible'){
+    syncWake();
+    if(audioCtx && (metRunning||rhRunning) && audioCtx.state!=='running') audioCtx.resume().catch(()=>{});
+  }
+});
 
 let audioCtx=null;
 let metRunning=false;
@@ -980,6 +984,12 @@ function autoAdvanceTick(){
   else if(document.getElementById('view-scales').classList.contains('active')) nextScale();
 }
 function scheduler(){
+  // if timers were throttled (screen lock / hidden tab), resync instead of burst-firing the backlog
+  if(nextNoteTime < audioCtx.currentTime - 0.25){
+    nextNoteTime = audioCtx.currentTime + 0.1;
+    subIndex=0; beatInBar=0;
+    startPendulum();
+  }
   const sub = state.subdivision || 1;
   const secPerTick = (60.0/state.bpm) / sub;
   while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
@@ -1025,7 +1035,11 @@ function renderRecents(){
   });
 }
 function ensureAudio(){
-  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    // if iOS suspends us mid-run (lock, interruption), pick back up automatically
+    audioCtx.onstatechange=()=>{ if((metRunning||rhRunning) && audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); };
+  }
   // tell iOS Safari this is media playback so it ignores the silent/ring switch
   try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}
   if(audioCtx.state==='suspended') audioCtx.resume();
@@ -1177,6 +1191,11 @@ function rhRender(){
 function rhCycle(){ return Math.min(state.rhX, state.rhY) * (60/state.rhBpm); }
 function rhResync(){ if(rhRunning){ const t=audioCtx.currentTime+0.08; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
 function rhScheduler(){
+  // resync after timer throttling rather than burst-firing missed clicks
+  if(rhNextA < audioCtx.currentTime-0.25 || rhNextB < audioCtx.currentTime-0.25){
+    const t=audioCtx.currentTime+0.1;
+    rhStart=rhNextA=rhNextB=t; rhPrev=0;
+  }
   const cycle=rhCycle(), ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
   while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,0.92,0.62,2400); rhNextA+=cycle/state.rhX; }
   while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.14,0.46,3000); rhNextB+=cycle/state.rhY; }
