@@ -886,6 +886,7 @@ document.addEventListener('visibilitychange', ()=>{
 
 let audioCtx=null;
 let metRunning=false;
+let metStarting=false;     // true while the click sound is loading for a pending start
 let nextNoteTime=0;
 let beatInBar=0;
 let timerId=null;
@@ -1045,10 +1046,15 @@ function ensureAudio(){
   if(audioCtx.state==='suspended') audioCtx.resume();
 }
 function startMet(){
+  if(metRunning || metStarting) return;          // ignore re-entrant taps (ghost clicks, double taps)
+  metStarting=true;
   ensureAudio();
   document.getElementById('met-toggle').textContent='…';
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
+    if(!metStarting) return;                      // start was cancelled before the sound loaded
+    metStarting=false;
+    clearInterval(timerId);                       // never leave an orphaned scheduler running
     metRunning=true; beatInBar=0; subIndex=0; downbeats=0; nextNoteTime=audioCtx.currentTime+0.12;
     state.recentBpms=[state.bpm, ...(state.recentBpms||[]).filter(v=>v!==state.bpm)].slice(0,3);
     save();
@@ -1056,10 +1062,11 @@ function startMet(){
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
     syncWake();
-  }).catch(()=>{ metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
+  }).catch(()=>{ metStarting=false; metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
 }
 function stopMet(){
-  metRunning=false; clearInterval(timerId);
+  metStarting=false;                              // cancel any in-flight start
+  metRunning=false; clearInterval(timerId); timerId=null;
   document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('on'));
   stopPendulum();
   updateMetUI();
@@ -1153,7 +1160,7 @@ setBeats(state.beats);
    Two layers, X and Y notes evenly across one shared cycle (= one beat = 60/rhBpm).
    Audio uses the lookahead scheduler; the strip + playhead are driven by the audio
    clock via requestAnimationFrame so they stay locked. Each layer's sound toggles. */
-let rhRunning=false, rhTimer=null, rhRAF=null, rhStart=0, rhNextA=0, rhNextB=0, rhPrev=0;
+let rhRunning=false, rhStarting=false, rhTimer=null, rhRAF=null, rhStart=0, rhNextA=0, rhNextB=0, rhPrev=0;
 function rhRenderLane(id,n){
   const lane=document.getElementById(id); lane.innerHTML='';
   for(let i=0;i<n;i++){
@@ -1222,9 +1229,14 @@ function rhLoop(){
   rhRAF=requestAnimationFrame(rhLoop);
 }
 function startRhythm(){
+  if(rhRunning || rhStarting) return;             // ignore re-entrant taps (ghost clicks, double taps)
+  rhStarting=true;
   ensureAudio();
   document.getElementById('rhythm-toggle').textContent='…';
   loadClick().then(()=>{
+    if(!rhStarting) return;                        // start was cancelled before the sound loaded
+    rhStarting=false;
+    clearInterval(rhTimer);                        // never leave an orphaned scheduler running
     rhRunning=true;
     const t=audioCtx.currentTime+0.12;
     rhStart=rhNextA=rhNextB=t; rhPrev=0;
@@ -1232,10 +1244,11 @@ function startRhythm(){
     if(!rhRAF) rhRAF=requestAnimationFrame(rhLoop);
     syncWake();
     document.getElementById('rhythm-toggle').textContent='■ Stop';
-  }).catch(()=>{ document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.'); });
+  }).catch(()=>{ rhStarting=false; document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.'); });
 }
 function stopRhythm(){
-  rhRunning=false; clearInterval(rhTimer);
+  rhStarting=false;                               // cancel any in-flight start
+  rhRunning=false; clearInterval(rhTimer); rhTimer=null;
   if(rhRAF){ cancelAnimationFrame(rhRAF); rhRAF=null; }
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left='0%';
   const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate(0deg)';
