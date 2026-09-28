@@ -148,8 +148,8 @@
   .chip .x{color:var(--danger);font-weight:800;padding-left:2px}
   /* chord picker: a row and a colour per triad, a column per note added on top */
   .tri-maj{--tri:var(--accent-rgb)} .tri-min{--tri:var(--teal-rgb)} .tri-dim{--tri:var(--amber-rgb)} .tri-aug{--tri:var(--rose-rgb)}
-  .display .type[class*="tri-"], .ref-name[class*="tri-"]{color:rgb(var(--tri))}
-  .display .type.tri-maj, .ref-name.tri-maj{color:#8fb6ff}
+  .display .type[class*="tri-"], .display .sym span, .ref-name[class*="tri-"]{color:rgb(var(--tri))}
+  .display .type.tri-maj, .display .sym span.tri-maj, .ref-name.tri-maj{color:#8fb6ff}
   .cg-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .cg-head{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--faint);font-weight:700;text-align:center}
   .cg-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:13px 0 6px;color:rgb(var(--tri))}
@@ -347,7 +347,8 @@
       <div class="body">
         <div class="section-title">Chord types in the pool</div>
         <div class="cgrid" id="chord-chips"></div>
-        <div class="hint">Each cell is one complete chord: its row is the triad, its column is the note added on top. Tap to add or remove it from the random pool. A diminished 7th is the same key as a 6th, so Dim 7 sits in the + 6 column.</div>
+        <div class="hint">Each cell is one complete chord: its row is the triad, its column is the note added on top. Tap to add or remove it from the random pool. A diminished 7th is the same key as a 6th, so Diminished 7 sits in the + 6 column.</div>
+        <div class="hint">Signs: <b>m</b> minor · <b>°</b> diminished · <b>+</b> augmented · <b>△7</b> major 7th · <b>ø7</b> half-diminished.</div>
 
         <div class="toggle-row">
           <span>Randomize inversions</span>
@@ -381,7 +382,7 @@
       <div class="chips" id="ref-roots"></div>
       <div class="section-title">Chord type</div>
       <div class="cgrid" id="ref-types"></div>
-      <div class="hint">The row is the triad, the column is the note added on top.</div>
+      <div class="hint">The row is the triad, the column is the note added on top. Signs: <b>m</b> minor · <b>°</b> diminished · <b>+</b> augmented · <b>△7</b> major 7th · <b>ø7</b> half-diminished.</div>
       <div class="section-title">Inversion</div>
       <div class="chips" id="ref-invs"></div>
     </div>
@@ -551,21 +552,24 @@ const NOTES = ['C','C♯/D♭','D','D♯/E♭','E','F','F♯/G♭','G','G♯/A�
    lays them out: triad = the row (and its colour), col = what is added
    (0 nothing, 1 a 6th, 2 a minor 7th, 3 a major 7th). A diminished 7th is the
    same key as a 6th, so dim7 sits in column 1.
-   sym = what follows the root on a lead sheet, deg = the scale degree of each
-   note, which decides how it is spelled (a 3rd is always two letters up). */
+   A chord is read the same way: the root with its triad (tri: m minor,
+   ° diminished, + augmented, nothing for major), then what is added (add).
+   sym = what follows the root on a lead sheet, where △7 is a major 7th and
+   ø7 the half-diminished chord. deg = the scale degree of each note, which
+   decides how it is spelled (a 3rd is always two letters up). */
 const DEFAULT_CHORDS = [
-  {id:'maj',  name:'Major',        intervals:[0,4,7],    triad:'maj', col:0, sym:'',      deg:[1,3,5]},
-  {id:'min',  name:'Minor',        intervals:[0,3,7],    triad:'min', col:0, sym:'m',     deg:[1,3,5]},
-  {id:'dim',  name:'Diminished',   intervals:[0,3,6],    triad:'dim', col:0, sym:'dim',   deg:[1,3,5]},
-  {id:'aug',  name:'Augmented',    intervals:[0,4,8],    triad:'aug', col:0, sym:'aug',   deg:[1,3,5]},
-  {id:'maj7', name:'Major 7',      intervals:[0,4,7,11], triad:'maj', col:3, sym:'maj7',  deg:[1,3,5,7]},
-  {id:'min7', name:'Minor 7',      intervals:[0,3,7,10], triad:'min', col:2, sym:'m7',    deg:[1,3,5,7]},
-  {id:'dom7', name:'Dominant 7',   intervals:[0,4,7,10], triad:'maj', col:2, sym:'7',     deg:[1,3,5,7]},
-  {id:'m7b5', name:'Min 7 ♭5',     intervals:[0,3,6,10], triad:'dim', col:2, sym:'m7♭5',  deg:[1,3,5,7]},
-  {id:'dim7', name:'Dim 7',        intervals:[0,3,6,9],  triad:'dim', col:1, sym:'dim7',  deg:[1,3,5,7]},
-  {id:'mM7',  name:'Min/Maj 7',    intervals:[0,3,7,11], triad:'min', col:3, sym:'mMaj7', deg:[1,3,5,7]},
-  {id:'maj6', name:'Major 6',      intervals:[0,4,7,9],  triad:'maj', col:1, sym:'6',     deg:[1,3,5,6]},
-  {id:'min6', name:'Minor 6',      intervals:[0,3,7,9],  triad:'min', col:1, sym:'m6',    deg:[1,3,5,6]},
+  {id:'maj',  name:'Major',           intervals:[0,4,7],    triad:'maj', col:0, tri:'',  add:'',     sym:'',    deg:[1,3,5]},
+  {id:'min',  name:'Minor',           intervals:[0,3,7],    triad:'min', col:0, tri:'m', add:'',     sym:'m',   deg:[1,3,5]},
+  {id:'dim',  name:'Diminished',      intervals:[0,3,6],    triad:'dim', col:0, tri:'°', add:'',     sym:'°',   deg:[1,3,5]},
+  {id:'aug',  name:'Augmented',       intervals:[0,4,8],    triad:'aug', col:0, tri:'+', add:'',     sym:'+',   deg:[1,3,5]},
+  {id:'maj7', name:'Major 7',         intervals:[0,4,7,11], triad:'maj', col:3, tri:'',  add:'Maj7', sym:'△7',  deg:[1,3,5,7]},
+  {id:'min7', name:'Minor 7',         intervals:[0,3,7,10], triad:'min', col:2, tri:'m', add:'7',    sym:'m7',  deg:[1,3,5,7]},
+  {id:'dom7', name:'Dominant 7',      intervals:[0,4,7,10], triad:'maj', col:2, tri:'',  add:'7',    sym:'7',   deg:[1,3,5,7]},
+  {id:'m7b5', name:'Half-diminished', intervals:[0,3,6,10], triad:'dim', col:2, tri:'°', add:'7',    sym:'ø7',  deg:[1,3,5,7]},
+  {id:'dim7', name:'Diminished 7',    intervals:[0,3,6,9],  triad:'dim', col:1, tri:'°', add:'dim7', sym:'°7',  deg:[1,3,5,7]},
+  {id:'mM7',  name:'Min/Maj 7',       intervals:[0,3,7,11], triad:'min', col:3, tri:'m', add:'Maj7', sym:'m△7', deg:[1,3,5,7]},
+  {id:'maj6', name:'Major 6',         intervals:[0,4,7,9],  triad:'maj', col:1, tri:'',  add:'6',    sym:'6',   deg:[1,3,5,6]},
+  {id:'min6', name:'Minor 6',         intervals:[0,3,7,9],  triad:'min', col:1, tri:'m', add:'6',    sym:'m6',  deg:[1,3,5,6]},
 ];
 const TRIADS = [{id:'maj',name:'Major triad'},{id:'min',name:'Minor triad'},{id:'dim',name:'Diminished triad'},{id:'aug',name:'Augmented triad'}];
 const CHORD_COLS = ['triad','+ 6','+ min 7','+ maj 7'];
@@ -740,9 +744,9 @@ function renderChord(combo, prog){
   let invLabel = '';
   if(combo.inv!==null){ notes = applyInversion(notes, combo.inv); invLabel = INV_NAMES[combo.inv] || (combo.inv+' inv'); }
   document.getElementById('chord-display').innerHTML =
-    `<div class="root">${sp.root}</div>`+
-    `<div class="type tri-${combo.type.triad}">${combo.type.name}</div>`+
-    `<div class="sym">${sp.root+combo.type.sym}</div>`+
+    `<div class="root">${sp.root+combo.type.tri}</div>`+
+    (combo.type.add?`<div class="type tri-${combo.type.triad}">${combo.type.add}</div>`:'')+
+    `<div class="sym">${sp.root+combo.type.sym} · <span class="tri-${combo.type.triad}">${combo.type.name}</span></div>`+
     (invLabel?`<div class="inv">${invLabel}</div>`:'')+
     (state.chordShowNotes?`<div class="notes">${notes.join('  ')}</div>`:'')+
     (prog?`<div class="progress">${prog}</div>`:'');
@@ -842,9 +846,9 @@ function updateRef(){
   document.getElementById('ref-notes').textContent=applyInversion(sp.names, refInv).join('  ');
   const inv=refInv?' · '+(INV_NAMES[refInv]||refInv+' inv'):'';
   const name=document.getElementById('ref-name');
-  name.textContent=sp.root+' '+refType.name+inv;
+  name.textContent=sp.root+refType.tri+(refType.add?' · '+refType.add:'');
   name.className='ref-name tri-'+refType.triad;
-  document.getElementById('ref-sym').textContent=sp.root+refType.sym;
+  document.getElementById('ref-sym').textContent=sp.root+refType.sym+' · '+refType.name+inv;
   const rc=document.getElementById('ref-roots'); rc.innerHTML='';
   NOTES.forEach((nm,i)=>refChip(rc, nm, i===refRoot, ()=>{ refRoot=i; updateRef(); }));
   renderChordGrid('ref-types', refRoot, t=>t.id===refType.id, t=>{ refType=t; if(refInv>=t.intervals.length) refInv=0; updateRef(); });
@@ -1649,7 +1653,7 @@ if('serviceWorker' in navigator){
 
 /* Build stamp in Settings > About. Shows both the HTML build and the active SW
    cache so a stale-client mismatch is visible at a glance. */
-const APP_VERSION='v33';   // bump together with CACHE in sw.js
+const APP_VERSION='v34';   // bump together with CACHE in sw.js
 (function(){
   const el=document.getElementById('app-version');
   if(!el) return;
