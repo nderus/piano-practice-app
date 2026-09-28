@@ -2,3 +2,7 @@
 __pycache__/
 metronome_src.ogg
 metronome_test.wav
+
+# simulation harness (dev-only)
+sim/node_modules/
+sim/fixtures/

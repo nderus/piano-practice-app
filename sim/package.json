@@ -1,0 +1,12 @@
+{
+  "name": "piano-practice-sim",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only simulation harness for the metronome. Not shipped with the app.",
+  "scripts": {
+    "sim": "node run.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

@@ -16,6 +16,7 @@
     --text:#eef3fb; --muted:#8a98b0; --faint:#566175;
     --accent:#4f8cff; --accent-press:#3a74e8; --accent-rgb:79,140,255;
     --teal:#36d6c0; --teal-rgb:54,214,192; --teal-press:#27c0ab; --danger:#ff6b7a;
+    --amber-rgb:255,184,77; --rose-rgb:255,122,162;
     --line:rgba(255,255,255,.07); --hair:rgba(255,255,255,.05);
     --shadow:0 10px 30px rgba(0,0,0,.45);
     --shadow-sm:0 4px 14px rgba(0,0,0,.3);
@@ -78,6 +79,7 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .display .type{font-size:29px;font-weight:700;color:var(--teal);margin-top:8px;letter-spacing:.3px}
+  .display .sym{font-size:17px;font-weight:700;color:var(--muted);margin-top:6px;letter-spacing:.4px}
   .display .inv{font-size:16px;color:var(--muted);margin-top:12px;font-weight:600;text-transform:lowercase}
   .display .notes{font-size:19px;margin-top:20px;letter-spacing:3px;color:var(--text);font-variant-numeric:tabular-nums}
   .display .progress{display:inline-block;font-size:12.5px;margin-top:20px;color:var(--muted);font-weight:600;
@@ -85,6 +87,7 @@
   .display .placeholder{font-size:17px;color:var(--muted);line-height:1.5}
   .display-fg>*{animation:rise .28s cubic-bezier(.2,.7,.3,1) both}
   .display .type{animation-delay:.03s}
+  .display .sym{animation-delay:.04s}
   .display .inv{animation-delay:.05s}
   .display .notes{animation-delay:.07s}
   .display .progress{animation-delay:.09s}
@@ -143,6 +146,19 @@
   .chip.on{background:linear-gradient(180deg,rgba(var(--accent-rgb),.28),rgba(var(--accent-rgb),.16));
     color:#fff;border-color:rgba(var(--accent-rgb),.7)}
   .chip .x{color:var(--danger);font-weight:800;padding-left:2px}
+  /* chord picker: a row and a colour per triad, a column per note added on top */
+  .tri-maj{--tri:var(--accent-rgb)} .tri-min{--tri:var(--teal-rgb)} .tri-dim{--tri:var(--amber-rgb)} .tri-aug{--tri:var(--rose-rgb)}
+  .display .type[class*="tri-"], .ref-name[class*="tri-"]{color:rgb(var(--tri))}
+  .display .type.tri-maj, .ref-name.tri-maj{color:#8fb6ff}
+  .cg-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .cg-head{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--faint);font-weight:700;text-align:center}
+  .cg-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:13px 0 6px;color:rgb(var(--tri))}
+  .cg-cell{flex-direction:column;justify-content:center;gap:3px;padding:9px 2px;min-height:54px;text-align:center;
+    border-bottom:2px solid rgba(var(--tri),.5)}
+  .cg-cell b{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap}
+  .cg-cell span{font-size:10px;font-weight:600;line-height:1.15;opacity:.85}
+  .cg-cell.chip.on{background:linear-gradient(180deg,rgba(var(--tri),.32),rgba(var(--tri),.16));border-color:rgba(var(--tri),.8)}
+  .cg-cell.empty{border:1px dashed var(--hair);border-radius:11px}
   .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-top:1px solid var(--hair)}
   .toggle-row span{font-weight:500;font-size:15px}
   /* iOS-style switch */
@@ -265,6 +281,7 @@
   #view-chords.ref-mode .chord-practice{display:none}
   #view-chords.ref-mode .chord-reference{display:block}
   .ref-name{text-align:center;font-size:30px;font-weight:800;margin:4px 0 2px}
+  .ref-sym{text-align:center;font-size:16px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.4px}
   .ref-notes{text-align:center;font-size:18px;letter-spacing:3px;color:var(--teal);font-weight:600;min-height:22px}
   .kbd{position:relative;display:flex;height:140px;margin:12px 0 16px;border-radius:10px;overflow:hidden;
     background:#0c1220;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
@@ -277,6 +294,16 @@
   .beat-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text);
     background:rgba(255,255,255,.12);border:1px solid var(--line);padding:2px 7px;border-radius:20px;display:none;margin-left:2px}
   .beat-badge.on{display:inline-block}
+  /* shown while the device has the audio clock stopped and a touch is what restarts it */
+  .stall-hint{display:none;position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:50;
+    padding:12px 16px;border-radius:14px;text-align:center;font-size:14px;font-weight:600;color:#fff;
+    background:var(--panel2);border:1px solid rgba(var(--accent-rgb),.6);box-shadow:var(--shadow);pointer-events:none}
+  body.audio-stalled .stall-hint{display:block}
+  .diag{margin-top:12px}
+  .diag>summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:6px 0}
+  .diag pre{margin:8px 0 10px;padding:12px;max-height:260px;overflow:auto;border-radius:12px;background:rgba(0,0,0,.28);
+    border:1px solid var(--hair);color:var(--muted);font:11.5px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;
+    -webkit-user-select:text;user-select:text}
 </style>
 </head>
 <body>
@@ -319,8 +346,8 @@
       <summary>Chord settings</summary>
       <div class="body">
         <div class="section-title">Chord types in the pool</div>
-        <div class="chips" id="chord-chips"></div>
-        <div class="hint">Tap a type to add or remove it from the random pool.</div>
+        <div class="cgrid" id="chord-chips"></div>
+        <div class="hint">Each cell is one complete chord: its row is the triad, its column is the note added on top. Tap to add or remove it from the random pool. A diminished 7th is the same key as a 6th, so Dim 7 sits in the + 6 column.</div>
 
         <div class="toggle-row">
           <span>Randomize inversions</span>
@@ -347,12 +374,14 @@
 
     <div class="chord-reference">
       <div class="ref-name" id="ref-name">C Major</div>
+      <div class="ref-sym" id="ref-sym"></div>
       <div class="ref-notes" id="ref-notes"></div>
       <div class="kbd" id="ref-kbd"></div>
       <div class="section-title">Root</div>
       <div class="chips" id="ref-roots"></div>
       <div class="section-title">Chord type</div>
-      <div class="chips" id="ref-types"></div>
+      <div class="cgrid" id="ref-types"></div>
+      <div class="hint">The row is the triad, the column is the note added on top.</div>
       <div class="section-title">Inversion</div>
       <div class="chips" id="ref-invs"></div>
     </div>
@@ -496,6 +525,12 @@
     <div class="section-title" style="margin-top:26px">About</div>
     <div class="hint">A small practice tool: chord &amp; scale randomizer, metronome, and polyrhythm trainer. Works fully offline once added to your Home Screen.</div>
     <div class="hint" id="app-version" style="margin-top:10px;opacity:.7"></div>
+    <details class="diag" id="diag">
+      <summary>Diagnostics log</summary>
+      <div class="hint">What the audio did recently. If the metronome ever freezes, copy this and send it along.</div>
+      <pre id="diag-out"></pre>
+      <button class="bigbtn secondary" id="diag-copy">📋 Copy log</button>
+    </details>
     <button class="bigbtn secondary" id="share-btn" style="margin-top:12px">📤 Share this app</button>
 
     <div class="section-title" style="margin-top:24px">Privacy</div>
@@ -505,70 +540,89 @@
     <div class="hint">Metronome click from <a href="https://commons.wikimedia.org/wiki/File:Sound_Classic_Metronome_96.ogg" target="_blank" rel="noopener">“Sound Classic Metronome 96”</a> by Olga Ernst, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</div>
   </section>
 </main>
+<div class="stall-hint" id="stall-hint">Your device paused the audio · tap anywhere to resume</div>
 
 <script>
 /* ---------- Music theory ---------- */
-const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+/* one chip per key; black keys carry both of their names */
+const NOTES = ['C','C♯/D♭','D','D♯/E♭','E','F','F♯/G♭','G','G♯/A♭','A','A♯/B♭','B'];
 
+/* Every chord is a triad plus, maybe, one note on top. That is how the picker
+   lays them out: triad = the row (and its colour), col = what is added
+   (0 nothing, 1 a 6th, 2 a minor 7th, 3 a major 7th). A diminished 7th is the
+   same key as a 6th, so dim7 sits in column 1.
+   sym = what follows the root on a lead sheet, deg = the scale degree of each
+   note, which decides how it is spelled (a 3rd is always two letters up). */
 const DEFAULT_CHORDS = [
-  {id:'maj',  name:'Major',        intervals:[0,4,7]},
-  {id:'min',  name:'Minor',        intervals:[0,3,7]},
-  {id:'dim',  name:'Diminished',   intervals:[0,3,6]},
-  {id:'aug',  name:'Augmented',    intervals:[0,4,8]},
-  {id:'maj7', name:'Major 7',      intervals:[0,4,7,11]},
-  {id:'min7', name:'Minor 7',      intervals:[0,3,7,10]},
-  {id:'dom7', name:'Dominant 7',   intervals:[0,4,7,10]},
-  {id:'m7b5', name:'Min 7 ♭5',     intervals:[0,3,6,10]},
-  {id:'dim7', name:'Dim 7',        intervals:[0,3,6,9]},
-  {id:'mM7',  name:'Min/Maj 7',    intervals:[0,3,7,11]},
-  {id:'maj6', name:'Major 6',      intervals:[0,4,7,9]},
-  {id:'min6', name:'Minor 6',      intervals:[0,3,7,9]},
+  {id:'maj',  name:'Major',        intervals:[0,4,7],    triad:'maj', col:0, sym:'',      deg:[1,3,5]},
+  {id:'min',  name:'Minor',        intervals:[0,3,7],    triad:'min', col:0, sym:'m',     deg:[1,3,5]},
+  {id:'dim',  name:'Diminished',   intervals:[0,3,6],    triad:'dim', col:0, sym:'dim',   deg:[1,3,5]},
+  {id:'aug',  name:'Augmented',    intervals:[0,4,8],    triad:'aug', col:0, sym:'aug',   deg:[1,3,5]},
+  {id:'maj7', name:'Major 7',      intervals:[0,4,7,11], triad:'maj', col:3, sym:'maj7',  deg:[1,3,5,7]},
+  {id:'min7', name:'Minor 7',      intervals:[0,3,7,10], triad:'min', col:2, sym:'m7',    deg:[1,3,5,7]},
+  {id:'dom7', name:'Dominant 7',   intervals:[0,4,7,10], triad:'maj', col:2, sym:'7',     deg:[1,3,5,7]},
+  {id:'m7b5', name:'Min 7 ♭5',     intervals:[0,3,6,10], triad:'dim', col:2, sym:'m7♭5',  deg:[1,3,5,7]},
+  {id:'dim7', name:'Dim 7',        intervals:[0,3,6,9],  triad:'dim', col:1, sym:'dim7',  deg:[1,3,5,7]},
+  {id:'mM7',  name:'Min/Maj 7',    intervals:[0,3,7,11], triad:'min', col:3, sym:'mMaj7', deg:[1,3,5,7]},
+  {id:'maj6', name:'Major 6',      intervals:[0,4,7,9],  triad:'maj', col:1, sym:'6',     deg:[1,3,5,6]},
+  {id:'min6', name:'Minor 6',      intervals:[0,3,7,9],  triad:'min', col:1, sym:'m6',    deg:[1,3,5,6]},
 ];
+const TRIADS = [{id:'maj',name:'Major triad'},{id:'min',name:'Minor triad'},{id:'dim',name:'Diminished triad'},{id:'aug',name:'Augmented triad'}];
+const CHORD_COLS = ['triad','+ 6','+ min 7','+ maj 7'];
 const DEFAULT_SCALES = [
-  {id:'major',  name:'Major',           intervals:[0,2,4,5,7,9,11]},
-  {id:'nmin',   name:'Natural minor',   intervals:[0,2,3,5,7,8,10]},
-  {id:'hmin',   name:'Harmonic minor',  intervals:[0,2,3,5,7,8,11]},
-  {id:'mmin',   name:'Melodic minor',   intervals:[0,2,3,5,7,9,11]},
-  {id:'dorian', name:'Dorian',          intervals:[0,2,3,5,7,9,10]},
-  {id:'phryg',  name:'Phrygian',        intervals:[0,1,3,5,7,8,10]},
-  {id:'lydian', name:'Lydian',          intervals:[0,2,4,6,7,9,11]},
-  {id:'mixo',   name:'Mixolydian',      intervals:[0,2,4,5,7,9,10]},
-  {id:'locri',  name:'Locrian',         intervals:[0,1,3,5,6,8,10]},
-  {id:'pentM',  name:'Major pentatonic',intervals:[0,2,4,7,9]},
-  {id:'pentm',  name:'Minor pentatonic',intervals:[0,3,5,7,10]},
-  {id:'blues',  name:'Blues',           intervals:[0,3,5,6,7,10]},
+  {id:'major',  name:'Major',           intervals:[0,2,4,5,7,9,11], deg:[1,2,3,4,5,6,7]},
+  {id:'nmin',   name:'Natural minor',   intervals:[0,2,3,5,7,8,10], deg:[1,2,3,4,5,6,7]},
+  {id:'hmin',   name:'Harmonic minor',  intervals:[0,2,3,5,7,8,11], deg:[1,2,3,4,5,6,7]},
+  {id:'mmin',   name:'Melodic minor',   intervals:[0,2,3,5,7,9,11], deg:[1,2,3,4,5,6,7]},
+  {id:'dorian', name:'Dorian',          intervals:[0,2,3,5,7,9,10], deg:[1,2,3,4,5,6,7]},
+  {id:'phryg',  name:'Phrygian',        intervals:[0,1,3,5,7,8,10], deg:[1,2,3,4,5,6,7]},
+  {id:'lydian', name:'Lydian',          intervals:[0,2,4,6,7,9,11], deg:[1,2,3,4,5,6,7]},
+  {id:'mixo',   name:'Mixolydian',      intervals:[0,2,4,5,7,9,10], deg:[1,2,3,4,5,6,7]},
+  {id:'locri',  name:'Locrian',         intervals:[0,1,3,5,6,8,10], deg:[1,2,3,4,5,6,7]},
+  {id:'pentM',  name:'Major pentatonic',intervals:[0,2,4,7,9],      deg:[1,2,3,5,6]},
+  {id:'pentm',  name:'Minor pentatonic',intervals:[0,3,5,7,10],     deg:[1,3,4,5,7]},
+  {id:'blues',  name:'Blues',           intervals:[0,3,5,6,7,10],   deg:[1,3,4,null,5,7]},
 ];
 const INV_NAMES = ['root position','1st inversion','2nd inversion','3rd inversion','4th inversion','5th inversion'];
 
 /* ---------- Persistence ---------- */
 const LS = 'pianoPractice.v3';
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
-function save(){ localStorage.setItem(LS, JSON.stringify(state)); }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }   // storage full / blocked: keep playing
+/* whatever is in storage, numbers come out finite and in range */
+const num=(v,def,lo,hi)=>{ if(v==null||v==='') return def; v=Math.round(+v); return Number.isFinite(v) ? Math.min(hi,Math.max(lo,v)) : def; };
+const ints=(a,lo,hi,def)=>Array.isArray(a) ? a.filter(v=>Number.isInteger(v)&&v>=lo&&v<=hi) : def;
 
 const saved = load();
+/* The type lists always come from the code; storage only remembers which ones
+   are switched on. That way a saved list can never hide a changed definition. */
+const withEnabled=(defs, was, on)=>defs.map(c=>{
+  const s=Array.isArray(was) && was.find(x=>x && x.id===c.id);
+  return {...c, enabled: s ? !!s.enabled : (Array.isArray(was) ? false : on.includes(c.id))};
+});
 const state = {
-  chordTypes: saved.chordTypes || DEFAULT_CHORDS.map(c=>({...c, enabled:['maj','min'].includes(c.id)})),
-  scaleTypes: saved.scaleTypes || DEFAULT_SCALES.map(s=>({...s, enabled:['major','nmin'].includes(s.id)})),
+  chordTypes: withEnabled(DEFAULT_CHORDS, saved.chordTypes, ['maj','min']),
+  scaleTypes: withEnabled(DEFAULT_SCALES, saved.scaleTypes, ['major','nmin']),
   chordInv:   saved.chordInv !== undefined ? saved.chordInv : false,
   chordShowNotes: saved.chordShowNotes !== undefined ? saved.chordShowNotes : true,
   scaleShowNotes: saved.scaleShowNotes !== undefined ? saved.scaleShowNotes : true,
   chordNoRepeat: saved.chordNoRepeat !== undefined ? saved.chordNoRepeat : false,
   scaleNoRepeat: saved.scaleNoRepeat !== undefined ? saved.scaleNoRepeat : false,
   showPend: saved.showPend !== undefined ? saved.showPend : true,
-  chordRoots: saved.chordRoots || NOTES.map((_,i)=>i),
-  scaleRoots: saved.scaleRoots || NOTES.map((_,i)=>i),
-  bpm: saved.bpm || 60,
-  beats: saved.beats || 4,
-  subdivision: saved.subdivision || 1,
-  rhX: saved.rhX || 3,
-  rhY: saved.rhY || 2,
-  rhBpm: saved.rhBpm || 52,
+  chordRoots: ints(saved.chordRoots,0,11, NOTES.map((_,i)=>i)),
+  scaleRoots: ints(saved.scaleRoots,0,11, NOTES.map((_,i)=>i)),
+  bpm: num(saved.bpm,60,40,240),
+  beats: num(saved.beats,4,1,12),
+  subdivision: num(saved.subdivision,1,1,4),
+  rhX: num(saved.rhX,3,2,9),
+  rhY: num(saved.rhY,2,2,9),
+  rhBpm: num(saved.rhBpm,52,30,200),
   rhA: saved.rhA !== undefined ? saved.rhA : true,
   rhB: saved.rhB !== undefined ? saved.rhB : true,
   rhView: saved.rhView || 'strip',
-  chordMode: saved.chordMode || 'practice',
-  recentBpms: saved.recentBpms || [],
-  autoAdv: saved.autoAdv || 0,
+  chordMode: saved.chordMode==='reference' ? 'reference' : 'practice',
+  recentBpms: ints(saved.recentBpms,40,240,[]).slice(0,3),
+  autoAdv: [0,1,2,4].includes(saved.autoAdv) ? saved.autoAdv : 0,
 };
 
 /* ---------- Tabs ---------- */
@@ -621,9 +675,44 @@ document.getElementById('share-btn').onclick=async()=>{
 const rand = n => Math.floor(Math.random()*n);
 function pick(arr){ return arr[rand(arr.length)]; }
 
-function notesFromIntervals(rootIdx, intervals){
-  return intervals.map(iv => NOTES[(rootIdx+iv)%12]);
+/* Spelling. A note's letter comes from its degree (the 3rd of C is some kind of
+   E, never a D), and the accidental is whatever makes the pitch right: C minor
+   is C E♭ G. A black-key root is tried under both of its names and the one
+   needing fewer accidentals wins, which lands on the usual choice by itself
+   (D♭ major but C♯ minor). Where a note would need a double flat or sharp, the
+   plain name of that key is shown instead. For chords only the triad votes on
+   the root's name (basis=3), so a whole row of the picker agrees: C♯m, C♯m7. */
+const LETTERS='CDEFGAB', LETTER_PC=[0,2,4,5,7,9,11];
+const ACC={'-1':'♭','0':'','1':'♯'};
+const FLAT =['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const SHARP=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+function rootSpellings(pc){
+  const nat=LETTER_PC.indexOf(pc);
+  if(nat>=0) return [{l:nat,a:0}];
+  return [{l:LETTER_PC.indexOf(pc+1), a:-1}, {l:LETTER_PC.indexOf(pc-1), a:1}];   // flat first: it wins a tie
 }
+/* deg[i] = null marks a passing note with no degree of its own (the blue note):
+   it takes the plain name of its key, sharp or flat like the notes around it. */
+function spell(rootPc, intervals, deg, basis){
+  let best=null;
+  for(const r of rootSpellings(rootPc)){
+    let cost=Math.abs(r.a), lean=r.a;
+    const names=intervals.map((iv,i)=>{
+      const d=deg ? deg[i] : 1, pc=(rootPc+iv)%12;
+      if(d==null) return pc;                          // named below, once we know which way the rest leans
+      const l=(r.l+d-1)%7, a=((pc-LETTER_PC[l]+18)%12)-6, votes=!basis || i<basis;
+      if(Math.abs(a)>1){ if(votes) cost+=3; return pc; }
+      if(votes) cost+=Math.abs(a);
+      lean+=a;
+      return LETTERS[l]+ACC[a];
+    }).map(n=>typeof n==='number' ? (lean>0 ? SHARP : FLAT)[n] : n);
+    if(rootPc===6 && r.a>0) cost-=0.5;               // on a tie F♯ is the commoner name than G♭
+    if(!best || cost<best.cost) best={cost, names, root:LETTERS[r.l]+ACC[r.a]};
+  }
+  return best;
+}
+const spellChord=(rootPc, type)=>spell(rootPc, type.intervals, type.deg, 3);
+const chordSymbol=(rootPc, type)=>spellChord(rootPc, type).root+type.sym;
 function applyInversion(notes, inv){
   // rotate first `inv` notes to the end -> changes the bass note
   const a = notes.slice();
@@ -646,12 +735,14 @@ function buildChordCombos(){
   return combos;
 }
 function renderChord(combo, prog){
-  let notes = notesFromIntervals(combo.r, combo.type.intervals);
+  const sp = spellChord(combo.r, combo.type);
+  let notes = sp.names;
   let invLabel = '';
   if(combo.inv!==null){ notes = applyInversion(notes, combo.inv); invLabel = INV_NAMES[combo.inv] || (combo.inv+' inv'); }
   document.getElementById('chord-display').innerHTML =
-    `<div class="root">${NOTES[combo.r]}</div>`+
-    `<div class="type">${combo.type.name}</div>`+
+    `<div class="root">${sp.root}</div>`+
+    `<div class="type tri-${combo.type.triad}">${combo.type.name}</div>`+
+    `<div class="sym">${sp.root+combo.type.sym}</div>`+
     (invLabel?`<div class="inv">${invLabel}</div>`:'')+
     (state.chordShowNotes?`<div class="notes">${notes.join('  ')}</div>`:'')+
     (prog?`<div class="progress">${prog}</div>`:'');
@@ -686,9 +777,10 @@ function buildScaleCombos(){
   return combos;
 }
 function renderScale(combo, prog){
-  const notes = notesFromIntervals(combo.r, combo.type.intervals);
+  const sp = spell(combo.r, combo.type.intervals, combo.type.deg);
+  const notes = sp.names;
   document.getElementById('scale-display').innerHTML =
-    `<div class="root">${NOTES[combo.r]}</div>`+
+    `<div class="root">${sp.root}</div>`+
     `<div class="type">${combo.type.name}</div>`+
     (state.scaleShowNotes?`<div class="notes">${notes.join('  ')}</div>`:'')+
     (prog?`<div class="progress">${prog}</div>`:'');
@@ -744,15 +836,18 @@ function refChip(box, label, on, fn){
   const el=document.createElement('div'); el.className='chip'+(on?' on':''); el.innerHTML='<span>'+label+'</span>'; el.onclick=fn; box.appendChild(el);
 }
 function updateRef(){
-  const {pos, order}=refPositions();
+  const {pos}=refPositions();
+  const sp=spellChord(refRoot, refType);
   renderKbd(new Set(pos));
-  document.getElementById('ref-notes').textContent=order.map(pc=>NOTES[pc]).join('  ');
+  document.getElementById('ref-notes').textContent=applyInversion(sp.names, refInv).join('  ');
   const inv=refInv?' · '+(INV_NAMES[refInv]||refInv+' inv'):'';
-  document.getElementById('ref-name').textContent=NOTES[refRoot]+' '+refType.name+inv;
+  const name=document.getElementById('ref-name');
+  name.textContent=sp.root+' '+refType.name+inv;
+  name.className='ref-name tri-'+refType.triad;
+  document.getElementById('ref-sym').textContent=sp.root+refType.sym;
   const rc=document.getElementById('ref-roots'); rc.innerHTML='';
   NOTES.forEach((nm,i)=>refChip(rc, nm, i===refRoot, ()=>{ refRoot=i; updateRef(); }));
-  const tc=document.getElementById('ref-types'); tc.innerHTML='';
-  DEFAULT_CHORDS.forEach(t=>refChip(tc, t.name, t.id===refType.id, ()=>{ refType=t; if(refInv>=t.intervals.length) refInv=0; updateRef(); }));
+  renderChordGrid('ref-types', refRoot, t=>t.id===refType.id, t=>{ refType=t; if(refInv>=t.intervals.length) refInv=0; updateRef(); });
   const ic=document.getElementById('ref-invs'); ic.innerHTML='';
   for(let i=0;i<refType.intervals.length;i++) refChip(ic, i===0?'Root':(INV_NAMES[i]||i+' inv'), i===refInv, ()=>{ refInv=i; updateRef(); });
 }
@@ -765,7 +860,6 @@ function applyChordMode(m){
 }
 chordMode.querySelectorAll('button').forEach(b=>{ b.onclick=()=>applyChordMode(b.dataset.cmode); });
 updateRef();
-applyChordMode(state.chordMode);
 
 /* ---------- Settings UI builders ---------- */
 function renderChips(containerId, types, onToggle, onDelete){
@@ -784,6 +878,32 @@ function renderChips(containerId, types, onToggle, onDelete){
     c.appendChild(el);
   });
 }
+/* Chord picker: one coloured row per triad, one column per note added on top.
+   Each cell is a complete chord, shown as its symbol over its name. */
+function renderChordGrid(containerId, rootPc, isOn, onTap){
+  const c=document.getElementById(containerId);
+  c.innerHTML=''; c.className='cgrid';
+  const head=document.createElement('div'); head.className='cg-row cg-head';
+  CHORD_COLS.forEach(h=>{ const d=document.createElement('div'); d.textContent=h; head.appendChild(d); });
+  c.appendChild(head);
+  TRIADS.forEach(tr=>{
+    const title=document.createElement('div'); title.className='cg-title tri-'+tr.id; title.textContent=tr.name;
+    c.appendChild(title);
+    const row=document.createElement('div'); row.className='cg-row tri-'+tr.id;
+    CHORD_COLS.forEach((_,col)=>{
+      const t=DEFAULT_CHORDS.find(x=>x.triad===tr.id && x.col===col);
+      const el=document.createElement('div');
+      if(!t) el.className='cg-cell empty';
+      else{
+        el.className='cg-cell chip'+(isOn(t)?' on':'');
+        el.innerHTML='<b>'+chordSymbol(rootPc,t)+'</b><span>'+t.name+'</span>';
+        el.onclick=()=>onTap(t);
+      }
+      row.appendChild(el);
+    });
+    c.appendChild(row);
+  });
+}
 function renderRoots(containerId, selected, onToggle){
   const c = document.getElementById(containerId);
   c.innerHTML='';
@@ -798,9 +918,9 @@ function renderRoots(containerId, selected, onToggle){
 
 function refreshChordSettings(){
   invalidateChordQueue();
-  renderChips('chord-chips', state.chordTypes,
-    i=>{ state.chordTypes[i].enabled=!state.chordTypes[i].enabled; save(); refreshChordSettings(); },
-    i=>{ state.chordTypes.splice(i,1); save(); refreshChordSettings(); });
+  const mine=t=>state.chordTypes.find(x=>x.id===t.id);
+  renderChordGrid('chord-chips', 0, t=>mine(t).enabled,
+    t=>{ mine(t).enabled=!mine(t).enabled; save(); refreshChordSettings(); });
   renderRoots('chord-roots', state.chordRoots, i=>{
     const p=state.chordRoots.indexOf(i);
     if(p>=0) state.chordRoots.splice(p,1); else state.chordRoots.push(i);
@@ -878,21 +998,50 @@ async function acquireWake(){
 }
 function releaseWake(){ if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }
 function syncWake(){ if(metRunning||rhRunning) acquireWake(); else releaseWake(); }
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible'){
-    syncWake();
-    if(audioCtx && (metRunning||rhRunning) && audioCtx.state!=='running') audioCtx.resume().catch(()=>{});
-  }
-});
 
 let audioCtx=null;
 let metRunning=false;
 let metStarting=false;     // true while the click sound is loading for a pending start
+let metStartAt=0, startTok=0;
 let nextNoteTime=0;
+let tlCtx=null;            // the context nextNoteTime was laid out on
 let beatInBar=0;
 let timerId=null;
 const LOOKAHEAD=25;        // ms
 const SCHEDULE_AHEAD=0.1;  // s
+const AHEAD_MAX=3;         // s. The longest honest wait for a next click is 2 s (rhythm at 30 bpm) plus lookahead
+
+/* ---------- Diagnostics ----------
+   A short rolling log of what the audio did, kept on the device and shown in
+   Settings > About, so a stall on the phone can be read back afterwards.
+   Logging must never be the thing that breaks: all of it is wrapped, and
+   nothing in here calls anything that logs. */
+const LOG_KEY='pianoPractice.log', LOG_MAX=80;
+let diag=[], diagSaveAt=0, diagTimer=null;
+try{ const d=JSON.parse(localStorage.getItem(LOG_KEY)); if(Array.isArray(d)) diag=d.slice(-LOG_MAX); }catch(e){}
+function diagSave(){
+  try{ diagTimer=null; diagSaveAt=Date.now(); localStorage.setItem(LOG_KEY, JSON.stringify(diag)); }catch(e){}
+}
+function dlog(ev, detail){
+  try{
+    const e={t:Date.now(), e:String(ev), d:detail==null?'':String(detail).slice(0,80),
+             s:audioCtx?audioCtx.state:'-', c:audioCtx?Math.round(audioCtx.currentTime*10)/10:0};
+    const last=diag[diag.length-1];
+    if(last && last.e===e.e && last.s===e.s && (last.d===e.d || e.e==='bpm')){ last.n=(last.n||1)+1; last.t=e.t; last.d=e.d; last.c=e.c; }
+    else{ diag.push(e); if(diag.length>LOG_MAX) diag.splice(0, diag.length-LOG_MAX); }
+    if(Date.now()-diagSaveAt>1000) diagSave();
+    else if(!diagTimer) diagTimer=setTimeout(diagSave, 1000);
+  }catch(e){}
+}
+function diagText(){
+  const two=n=>String(n).padStart(2,'0');
+  return 'Piano Practice '+APP_VERSION+'\n'+diag.map(e=>{
+    const d=new Date(e.t);
+    return two(d.getHours())+':'+two(d.getMinutes())+':'+two(d.getSeconds())+'  '+e.e+(e.d?' '+e.d:'')+'  ['+e.s+' @'+e.c+'s]'+(e.n?' x'+e.n:'');
+  }).join('\n');
+}
+window.addEventListener('error', e=>dlog('error', e && e.message));
+window.addEventListener('unhandledrejection', e=>dlog('reject', e && e.reason && (e.reason.message||e.reason)));
 
 function buildBeatDots(){
   const c=document.getElementById('beat-dots'); c.innerHTML='';
@@ -917,28 +1066,35 @@ function flashBeat(i){
    load). angle = A*cos(pi*phase); phase advances by elapsed beats -> an extreme
    exactly on each beat, with a natural gravity-like ease at the turns. */
 const PEND_ANGLE=40;
-let pendPhase=0, pendLast=0, pendRAF=null;
+let pendPhase=0, pendLast=0, pendRAF=null, pendCtx=null;
 /* Best estimate of the audio time being HEARD right now (scheduling time minus
-   output latency), so on-screen visuals match the speakers, not the scheduler. */
+   output latency), so on-screen visuals match the speakers, not the scheduler.
+   The output timestamp is only trusted while it stays just behind the clock. */
 function audioNow(){
+  if(!audioCtx) return 0;
+  const c=audioCtx.currentTime;
   if(audioCtx.getOutputTimestamp){
-    const ts=audioCtx.getOutputTimestamp();
-    if(ts && ts.contextTime>0) return ts.contextTime;
+    try{
+      const ts=audioCtx.getOutputTimestamp();
+      if(ts && ts.contextTime>0 && ts.contextTime<=c && c-ts.contextTime<0.5) return ts.contextTime;
+    }catch(e){}
   }
-  return audioCtx.currentTime - (audioCtx.outputLatency||0);
+  return c - (audioCtx.outputLatency||0);
 }
 function setArms(transform, transition){
   document.querySelectorAll('.js-pend-arm').forEach(arm=>{ arm.style.transition=transition; arm.style.transform=transform; });
 }
 function pendulumLoop(){
   if(!metRunning){ pendRAF=null; return; }
-  const now=audioNow();
-  pendPhase += (now-pendLast)/(60/state.bpm);
+  pendRAF=requestAnimationFrame(pendulumLoop);      // first, so nothing below can end the animation
+  const now=audioNow(), d=now-pendLast;
+  if(pendCtx!==audioCtx || !(d>=0 && d<1)){ startPendulum(); return; }   // new clock, or a jump: line up again
+  pendPhase += d/(60/state.bpm);
   pendLast=now;
   setArms('rotate('+(PEND_ANGLE*Math.cos(Math.PI*pendPhase)).toFixed(2)+'deg)','none');
-  pendRAF=requestAnimationFrame(pendulumLoop);
 }
 function startPendulum(){
+  pendCtx=audioCtx;
   pendLast=audioNow();
   pendPhase = -(nextNoteTime-pendLast)/(60/state.bpm);   // line the first beat up with an extreme
   if(!pendRAF) pendRAF=requestAnimationFrame(pendulumLoop);
@@ -951,20 +1107,34 @@ function stopPendulum(){
    mechanical metronome (click.wav). The accented downbeat plays the same
    sample pitched slightly up and a touch louder. Sample is bundled & cached,
    so playback stays fully offline. */
-let clickBuffer=null, clickLoad=null;
+let clickBuffer=null, clickLoad=null, clickRaw=null;
 function loadClick(){
   if(clickBuffer) return Promise.resolve(clickBuffer);
   if(clickLoad) return clickLoad;
-  clickLoad = fetch('click.wav')
-    .then(r=>r.arrayBuffer())
-    .then(buf=>new Promise((res,rej)=>{
-      // callback form for widest Safari support
-      audioCtx.decodeAudioData(buf, b=>{clickBuffer=b; res(b);}, rej);
-    }));
-  return clickLoad;
+  const ctx=audioCtx;
+  /* Keep the raw file bytes: if the context has to be rebuilt we decode again
+     from here (no network, works offline). decodeAudioData detaches its input,
+     so hand it a copy. */
+  const p=new Promise((res,rej)=>{
+    const t=setTimeout(()=>rej(new Error('timed out')), 3000);   // a fetch or decode that never answers must not hang Start
+    const done=f=>v=>{ clearTimeout(t); f(v); };
+    (clickRaw ? Promise.resolve(clickRaw)
+              : fetch('click.wav').then(r=>r.arrayBuffer()).then(b=>{ clickRaw=b; return b; }))
+      .then(raw=>{
+        // callback form for widest Safari support
+        const r=ctx.decodeAudioData(raw.slice(0), done(res), done(rej));
+        if(r && r.catch) r.catch(()=>{});
+      }).catch(done(rej));
+  }).then(b=>{
+    if(ctx!==audioCtx) return loadClick();        // the context was replaced meanwhile: decode for the new one
+    clickBuffer=b; return b;
+  });
+  clickLoad=p;
+  p.catch(e=>{ if(clickLoad===p) clickLoad=null; dlog('load-fail', e && e.message); });   // let a failed load be retried
+  return p;
 }
 function playClick(time, rate, gain, lp){
-  if(!clickBuffer) return;
+  if(!clickBuffer){ if(!clickLoad && audioCtx) loadClick().catch(()=>{}); return null; }
   const src=audioCtx.createBufferSource();
   src.buffer=clickBuffer; src.playbackRate.value=rate;
   const g=audioCtx.createGain(); g.gain.value=gain;
@@ -976,8 +1146,19 @@ function playClick(time, rate, gain, lp){
     g.connect(audioCtx.destination);
   }
   src.start(time);
+  return src;
 }
-function clickAt(time, accent){ playClick(time, accent?1.12:1.0, accent?1.0:0.82); }
+function clickAt(time, accent){ return playClick(time, accent?1.12:1.0, accent?1.0:0.82); }
+/* Clicks are handed to the audio clock up to SCHEDULE_AHEAD early. Remember the
+   ones still to come so Stop can take them back: otherwise one sounds after
+   Stop, or much later if the device froze the clock in between. */
+let metSrcs=[], rhSrcs=[];
+function keep(list, src, time){ if(src){ list.push({src,time}); if(list.length>24) list.shift(); } }
+function hush(list){
+  const c=audioCtx ? audioCtx.currentTime : 0;
+  list.forEach(x=>{ if(x.time>c){ try{ x.src.stop(); }catch(e){} } });
+  list.length=0;
+}
 let subIndex=0, downbeats=0;
 /* auto-advance: draw the next chord/scale on the downbeat every N bars */
 function autoAdvanceTick(){
@@ -985,18 +1166,27 @@ function autoAdvanceTick(){
   if(chords.classList.contains('active') && !chords.classList.contains('ref-mode')) nextChord();
   else if(document.getElementById('view-scales').classList.contains('active')) nextScale();
 }
+/* A timeline belongs on the clock it was laid out for. It is off the clock when
+   it is not a number, has fallen behind (timers were throttled), or sits further
+   ahead than any tempo could put it (the context was replaced, its clock restarted). */
+function offClock(t){ const c=audioCtx.currentTime; return !(t>=c-0.25 && t<=c+AHEAD_MAX); }
 function scheduler(){
-  // if timers were throttled (screen lock / hidden tab), resync instead of burst-firing the backlog
-  if(nextNoteTime < audioCtx.currentTime - 0.25){
+  if(!audioCtx) return;
+  noteClock();
+  // resync instead of burst-firing a backlog or waiting on a timeline that is no longer ours
+  if(tlCtx!==audioCtx || offClock(nextNoteTime)){
+    tlCtx=audioCtx;
     nextNoteTime = audioCtx.currentTime + 0.1;
     subIndex=0; beatInBar=0;
     startPendulum();
   }
   const sub = state.subdivision || 1;
   const secPerTick = (60.0/state.bpm) / sub;
-  while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
+  if(!(secPerTick>0)) return;
+  let n=0;
+  while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD && n++<8){
     if(subIndex===0){
-      clickAt(nextNoteTime, beatInBar===0);          // main beat (accent on downbeat)
+      keep(metSrcs, clickAt(nextNoteTime, beatInBar===0), nextNoteTime);   // main beat (accent on downbeat)
       const beatToFlash=beatInBar, delay=(nextNoteTime-audioCtx.currentTime)*1000;
       setTimeout(()=>flashBeat(beatToFlash), Math.max(0,delay));
       if(beatInBar===0){
@@ -1005,7 +1195,7 @@ function scheduler(){
         downbeats++;
       }
     } else {
-      playClick(nextNoteTime, 1.08, 0.34);            // soft subdivision tick
+      keep(metSrcs, playClick(nextNoteTime, 1.08, 0.34), nextNoteTime);    // soft subdivision tick
     }
     nextNoteTime += secPerTick;
     subIndex++;
@@ -1036,44 +1226,190 @@ function renderRecents(){
     c.appendChild(el);
   });
 }
-function ensureAudio(){
-  if(!audioCtx){
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    // if iOS suspends us mid-run (lock, interruption), pick back up automatically
-    audioCtx.onstatechange=()=>{ if((metRunning||rhRunning) && audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); };
-  }
+function kick(){ try{ const p=audioCtx.resume(); if(p && p.catch) p.catch(()=>{}); }catch(e){} }
+function makeContext(){
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  /* iOS parks the context on screen lock / phone call. The state it lands in
+     is 'interrupted' (WebKit-only) as often as 'suspended', so match on
+     "not running" rather than on one name. */
+  ctx.onstatechange=()=>{
+    if(ctx!==audioCtx || !(metRunning||rhRunning)) return;
+    dlog('state');
+    if(ctx.state!=='running' && ctx.state!=='closed') kick();
+  };
+  return ctx;
+}
+
+/* ---------- Stall recovery ----------
+   iOS can stop the audio clock under us: on a screen lock, a call, Siri, maybe
+   the keyboard. The context may say 'suspended', 'interrupted', or even
+   'running' while currentTime never advances again. Every clock in here
+   (schedulers, pendulum, rhythm strip) reads that clock, so the app stays
+   responsive while the metronome sits frozen and silent.
+   So we never trust the state, only the clock: is currentTime moving? If not,
+   resume; if that does not take, throw the context away and build a new one.
+   iOS may allow either only from inside a touch, so every touch retries too.
+   The schedulers notice a replaced clock by themselves and line up again. */
+const STALL_MS=1500;
+let ckCtx=null, ckT=0, ckWall=-1e9;                // last time the clock was seen to move
+let watchdogId=null, recovering=false, recTok=0, stalled=false;
+let lastRebuild=-1e9, rebuildWait=5000;            // automatic rebuilds back off; a tap may always rebuild
+let tapAt=-1e9, tapRebuilt=false, tapCount=0;
+function noteClock(){
+  if(!audioCtx) return;
+  const t=audioCtx.currentTime;
+  if(ckCtx!==audioCtx){ ckCtx=audioCtx; ckT=t; ckWall=-1e9; }
+  else if(t>ckT){ ckT=t; ckWall=performance.now(); }
+}
+function clockAlive(){
+  noteClock();
+  return !!audioCtx && audioCtx.state==='running' && performance.now()-ckWall<STALL_MS;
+}
+function markStall(on, why){
+  if(on===stalled) return;
+  stalled=on;
+  dlog(on?'stall':'recovered', why);
+  document.body.classList.toggle('audio-stalled', on);
+  if(!on){ tapCount=0; rebuildWait=5000; lastRebuild=-1e9; }   // it worked: the back-off is only for rebuilds that did not
+}
+function audioWatchdog(){
+  if(document.visibilityState!=='visible') return;
+  const on=metRunning||rhRunning;
+  if(clockAlive()){ markStall(false,'clock moving'); return; }
+  if(!on){ stalled=false; document.body.classList.remove('audio-stalled'); return; }
+  markStall(true,'watchdog');
+  recoverAudio();
+}
+/* resolves true as soon as the clock is seen moving, false after ms */
+function moves(ms){
+  return new Promise(res=>{
+    const ctx=audioCtx, t0=ctx?ctx.currentTime:0, end=performance.now()+ms;
+    (function poll(){
+      if(!ctx || audioCtx!==ctx) return res(false);
+      if(ctx.state==='running' && ctx.currentTime>t0+0.02) return res(true);
+      if(performance.now()>=end) return res(ctx.state==='running' && ctx.currentTime>t0);
+      setTimeout(poll,100);
+    })();
+  });
+}
+/* Swap in a brand new context. The new one is made first: if the device
+   refuses, the old one is still there to fall back on. */
+function rebuildAudio(why){
+  if(why!=='start') dlog('rebuild', why);
+  if(why==='auto') lastRebuild=performance.now();
+  let ctx;
+  try{ ctx=makeContext(); }catch(e){ dlog('no-context', e && e.message); return false; }
+  const old=audioCtx;
+  audioCtx=ctx; clickBuffer=null; clickLoad=null;
+  if(old){ old.onstatechange=null; try{ const p=old.close(); if(p && p.catch) p.catch(()=>{}); }catch(e){} }
+  if(!watchdogId) watchdogId=setInterval(audioWatchdog, 1000);
   // tell iOS Safari this is media playback so it ignores the silent/ring switch
   try{ if('audioSession' in navigator) navigator.audioSession.type='playback'; }catch(e){}
-  if(audioCtx.state==='suspended') audioCtx.resume();
+  if(ctx.state!=='running') kick();
+  loadClick().catch(()=>{});                      // decodes from clickRaw: no network needed after the first time
+  return true;
 }
+async function recoverAudio(){
+  if(recovering || !(metRunning||rhRunning)) return;
+  recovering=true;
+  const tok=++recTok;
+  const guard=setTimeout(()=>{ if(tok===recTok) recovering=false; }, 4000);   // never stay "recovering" for good
+  try{
+    if(audioCtx && audioCtx.state!=='closed'){
+      const frozen=audioCtx.state==='running';     // says running, does not move: resume() has nothing to do
+      kick();
+      if(await moves(frozen?300:1000)){ markStall(false,'resume'); return; }
+    }
+    if(tok!==recTok || !(metRunning||rhRunning)) return;
+    if(performance.now()-tapAt<1500) return;       // a touch is dealing with it: do not swap the context under it
+    if(audioCtx && performance.now()-lastRebuild<rebuildWait) return;
+    rebuildWait=Math.min(60000, rebuildWait*2);
+    if(rebuildAudio('auto') && await moves(800)) markStall(false,'rebuild');
+    else markStall(true,'needs a tap');
+  }catch(e){}
+  finally{ clearTimeout(guard); if(tok===recTok) recovering=false; }
+}
+/* Every touch is a chance to restart a stalled clock. resume() is harmless to
+   repeat. A rebuild happens once per tap, and only as the finger lifts: that
+   is the part of a touch that counts as a user gesture on every browser. */
+function onGesture(e){
+  if(!(metRunning||rhRunning)) return;
+  if(clockAlive()){ tapCount=0; return; }
+  const now=performance.now();
+  if(now-tapAt>400){ tapAt=now; tapRebuilt=false; tapCount++; dlog('tap-fix', tapCount); }
+  const st=audioCtx ? audioCtx.state : 'closed';
+  if(st!=='running' && st!=='closed' && tapCount<2){ kick(); return; }   // first tap: a plain resume. If that did not take, the next one rebuilds
+  if(e.type==='pointerdown' || tapRebuilt){ if(audioCtx) kick(); return; }
+  tapRebuilt=true;
+  rebuildAudio('tap');
+}
+['pointerdown','pointerup','touchend','click','keydown'].forEach(t=>document.addEventListener(t, onGesture, true));
+/* Called inside the tap that starts playback. Every start gets a brand new
+   context: a frozen clock can only be told from a live one by watching it for
+   a while, and a context made inside a tap is the one thing iOS always lets run. */
+function primeAudio(){
+  if(rebuildAudio('start')) return;
+  if(!audioCtx || audioCtx.state==='closed') throw new Error('no audio context');
+  kick();                                         // no new one to be had: make do with the old
+}
+/* Coming back from a screen lock or another app. */
+function onReturn(){
+  if(document.visibilityState!=='visible') return;
+  dlog('show');
+  syncWake();
+  if(metRunning||rhRunning) recoverAudio();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible') onReturn();
+  else{ dlog('hide'); diagSave(); }
+});
+window.addEventListener('pageshow', onReturn);
+window.addEventListener('focus', onReturn);
+
 function startMet(){
   if(metRunning || metStarting) return;          // ignore re-entrant taps (ghost clicks, double taps)
-  metStarting=true;
-  ensureAudio();
+  metStarting=true; metStartAt=performance.now();
+  const tok=++startTok;
+  try{ primeAudio(); }
+  catch(e){ metStarting=false; dlog('start-fail', e && e.message); updateMetUI(); alert('Could not start the audio. Please try again.'); return; }
   document.getElementById('met-toggle').textContent='…';
   document.querySelectorAll('.js-met-mini-toggle').forEach(el=>el.textContent='…');
   loadClick().then(()=>{
-    if(!metStarting) return;                      // start was cancelled before the sound loaded
+    if(!metStarting || tok!==startTok) return;    // start was cancelled before the sound loaded
     metStarting=false;
     clearInterval(timerId);                       // never leave an orphaned scheduler running
-    metRunning=true; beatInBar=0; subIndex=0; downbeats=0; nextNoteTime=audioCtx.currentTime+0.12;
+    metRunning=true; beatInBar=0; subIndex=0; downbeats=0;
+    tlCtx=audioCtx; nextNoteTime=audioCtx.currentTime+0.12;
     state.recentBpms=[state.bpm, ...(state.recentBpms||[]).filter(v=>v!==state.bpm)].slice(0,3);
     save();
+    dlog('start', state.bpm);
     startPendulum();
     timerId=setInterval(scheduler, LOOKAHEAD);
     updateMetUI();
     syncWake();
-  }).catch(()=>{ metStarting=false; metRunning=false; updateMetUI(); alert('Could not load the click sound.'); });
+  }).catch(()=>{
+    if(tok!==startTok) return;
+    metStarting=false; metRunning=false; updateMetUI();
+    alert('Could not load the click sound.');
+  });
 }
 function stopMet(){
-  metStarting=false;                              // cancel any in-flight start
+  if(metRunning) dlog('stop');
+  metStarting=false; startTok++;                  // cancel any in-flight start
   metRunning=false; clearInterval(timerId); timerId=null;
+  hush(metSrcs);
   document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('on'));
   stopPendulum();
   updateMetUI();
   syncWake();
+  if(!rhRunning){ stalled=false; document.body.classList.remove('audio-stalled'); }
 }
-function toggleMet(){ metRunning ? stopMet() : startMet(); }
+function toggleMet(){
+  if(metRunning) return stopMet();
+  /* '…' can be cancelled with a tap, but not by the ghost of the tap that began it */
+  if(metStarting){ if(performance.now()-metStartAt>400) stopMet(); return; }
+  startMet();
+}
 document.getElementById('met-toggle').onclick=toggleMet;
 ['chordmet','scalemet'].forEach(p=>{
   document.getElementById(p+'-toggle').onclick=toggleMet;
@@ -1110,7 +1446,10 @@ document.querySelectorAll('.js-bpm').forEach(el=>{
 });
 
 function setBpm(v){
+  v=+v; if(Number.isNaN(v)) return;
+  const was=state.bpm;
   state.bpm=Math.min(240,Math.max(40,Math.round(v)));
+  if(state.bpm!==was) dlog('bpm', state.bpm);
   updateMetUI();
   save();
 }
@@ -1119,7 +1458,8 @@ document.getElementById('bpm-inc').onclick=()=>setBpm(state.bpm+1);
 document.getElementById('bpm-dec').onclick=()=>setBpm(state.bpm-1);
 
 function setBeats(v){
-  state.beats=Math.min(12,Math.max(1,v));
+  v=+v; if(Number.isNaN(v)) return;
+  state.beats=Math.min(12,Math.max(1,Math.round(v)));
   document.getElementById('sig-label').textContent=state.beats+' beats / bar';
   buildBeatDots(); save();
   if(metRunning) beatInBar=0;
@@ -1154,6 +1494,7 @@ document.getElementById('tap-tempo').onclick=()=>{
   }
 };
 
+applyChordMode(state.chordMode);   // down here because it reads the metronome state declared above
 setBpm(state.bpm);
 setBeats(state.beats);
 
@@ -1162,6 +1503,7 @@ setBeats(state.beats);
    Audio uses the lookahead scheduler; the strip + playhead are driven by the audio
    clock via requestAnimationFrame so they stay locked. Each layer's sound toggles. */
 let rhRunning=false, rhStarting=false, rhTimer=null, rhRAF=null, rhStart=0, rhNextA=0, rhNextB=0, rhPrev=0;
+let rhCtx=null, rhStartAt=0, rhTok=0;              // rhCtx: the context the rhythm timeline was laid out on
 function rhRenderLane(id,n){
   const lane=document.getElementById(id); lane.innerHTML='';
   for(let i=0;i<n;i++){
@@ -1197,16 +1539,21 @@ function rhRender(){
 /* The fewer-notes layer is the steady beat: it clicks at exactly rhBpm, so the
    cycle spans that many beats and the other layer fits evenly across it. */
 function rhCycle(){ return Math.min(state.rhX, state.rhY) * (60/state.rhBpm); }
-function rhResync(){ if(rhRunning){ const t=audioCtx.currentTime+0.08; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
+function rhResync(){ if(rhRunning && audioCtx){ const t=audioCtx.currentTime+0.08; rhCtx=audioCtx; rhStart=rhNextA=rhNextB=t; rhPrev=0; } }
 function rhScheduler(){
-  // resync after timer throttling rather than burst-firing missed clicks
-  if(rhNextA < audioCtx.currentTime-0.25 || rhNextB < audioCtx.currentTime-0.25){
+  if(!audioCtx) return;
+  noteClock();
+  // resync rather than burst-firing missed clicks or waiting on a clock that is gone (see offClock)
+  if(rhCtx!==audioCtx || offClock(rhNextA) || offClock(rhNextB)){
     const t=audioCtx.currentTime+0.1;
-    rhStart=rhNextA=rhNextB=t; rhPrev=0;
+    rhCtx=audioCtx; rhStart=rhNextA=rhNextB=t; rhPrev=0;
   }
   const cycle=rhCycle(), ahead=audioCtx.currentTime+SCHEDULE_AHEAD;
-  while(rhNextA<ahead){ if(state.rhA) playClick(rhNextA,0.92,0.62,2400); rhNextA+=cycle/state.rhX; }
-  while(rhNextB<ahead){ if(state.rhB) playClick(rhNextB,1.14,0.46,3000); rhNextB+=cycle/state.rhY; }
+  if(!(cycle>0)) return;
+  let n=0;
+  while(rhNextA<ahead && n++<16){ if(state.rhA) keep(rhSrcs, playClick(rhNextA,0.92,0.62,2400), rhNextA); rhNextA+=cycle/state.rhX; }
+  n=0;
+  while(rhNextB<ahead && n++<16){ if(state.rhB) keep(rhSrcs, playClick(rhNextB,1.14,0.46,3000), rhNextB); rhNextB+=cycle/state.rhY; }
 }
 function rhFlash(id,n,prev,cur){
   const marks=document.getElementById(id).children;
@@ -1218,8 +1565,10 @@ function rhFlash(id,n,prev,cur){
 }
 function rhLoop(){
   if(!rhRunning){ rhRAF=null; return; }
+  rhRAF=requestAnimationFrame(rhLoop);             // first, so nothing below can end the animation
   const cycle=rhCycle();
   let phase=((audioNow()-rhStart)/cycle)%1; if(phase<0) phase+=1;
+  if(!(phase>=0 && phase<1)) return;
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left=(phase*100)+'%';
   const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate('+(phase*360)+'deg)';
   rhFlash('rlane-a', state.rhX, rhPrev, phase);
@@ -1227,29 +1576,37 @@ function rhLoop(){
   rhFlash('ring-a', state.rhX, rhPrev, phase);
   rhFlash('ring-b', state.rhY, rhPrev, phase);
   rhPrev=phase;
-  rhRAF=requestAnimationFrame(rhLoop);
 }
 function startRhythm(){
   if(rhRunning || rhStarting) return;             // ignore re-entrant taps (ghost clicks, double taps)
-  rhStarting=true;
-  ensureAudio();
+  rhStarting=true; rhStartAt=performance.now();
+  const tok=++rhTok;
+  try{ primeAudio(); }
+  catch(e){ rhStarting=false; dlog('start-fail', e && e.message); alert('Could not start the audio. Please try again.'); return; }
   document.getElementById('rhythm-toggle').textContent='…';
   loadClick().then(()=>{
-    if(!rhStarting) return;                        // start was cancelled before the sound loaded
+    if(!rhStarting || tok!==rhTok) return;         // start was cancelled before the sound loaded
     rhStarting=false;
     clearInterval(rhTimer);                        // never leave an orphaned scheduler running
     rhRunning=true;
     const t=audioCtx.currentTime+0.12;
-    rhStart=rhNextA=rhNextB=t; rhPrev=0;
+    rhCtx=audioCtx; rhStart=rhNextA=rhNextB=t; rhPrev=0;
+    dlog('rhythm start', state.rhX+':'+state.rhY+' @'+state.rhBpm);
     rhTimer=setInterval(rhScheduler, LOOKAHEAD);
     if(!rhRAF) rhRAF=requestAnimationFrame(rhLoop);
     syncWake();
     document.getElementById('rhythm-toggle').textContent='■ Stop';
-  }).catch(()=>{ rhStarting=false; document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.'); });
+  }).catch(()=>{
+    if(tok!==rhTok) return;
+    rhStarting=false; document.getElementById('rhythm-toggle').textContent='▶ Start'; alert('Could not load the click sound.');
+  });
 }
 function stopRhythm(){
-  rhStarting=false;                               // cancel any in-flight start
+  if(rhRunning) dlog('rhythm stop');
+  rhStarting=false; rhTok++;                      // cancel any in-flight start
   rhRunning=false; clearInterval(rhTimer); rhTimer=null;
+  hush(rhSrcs);
+  if(!metRunning){ stalled=false; document.body.classList.remove('audio-stalled'); }
   if(rhRAF){ cancelAnimationFrame(rhRAF); rhRAF=null; }
   const ph=document.getElementById('rplayhead'); if(ph) ph.style.left='0%';
   const hand=document.getElementById('ring-hand'); if(hand) hand.style.transform='rotate(0deg)';
@@ -1257,10 +1614,14 @@ function stopRhythm(){
   document.getElementById('rhythm-toggle').textContent='▶ Start';
   syncWake();
 }
-document.getElementById('rhythm-toggle').onclick=()=>{ rhRunning?stopRhythm():startRhythm(); };
-function rhSetX(v){ state.rhX=Math.min(9,Math.max(2,v)); rhRender(); rhResync(); save(); }
-function rhSetY(v){ state.rhY=Math.min(9,Math.max(2,v)); rhRender(); rhResync(); save(); }
-function rhSetBpm(v){ state.rhBpm=Math.min(200,Math.max(30,v)); rhRender(); rhResync(); save(); }
+document.getElementById('rhythm-toggle').onclick=()=>{
+  if(rhRunning) return stopRhythm();
+  if(rhStarting){ if(performance.now()-rhStartAt>400) stopRhythm(); return; }   // see toggleMet
+  startRhythm();
+};
+function rhSetX(v){ state.rhX=num(v,state.rhX,2,9); rhRender(); rhResync(); save(); }
+function rhSetY(v){ state.rhY=num(v,state.rhY,2,9); rhRender(); rhResync(); save(); }
+function rhSetBpm(v){ state.rhBpm=num(v,state.rhBpm,30,200); rhRender(); rhResync(); save(); }
 document.getElementById('rx-dec').onclick=()=>rhSetX(state.rhX-1);
 document.getElementById('rx-inc').onclick=()=>rhSetX(state.rhX+1);
 document.getElementById('ry-dec').onclick=()=>rhSetY(state.rhY-1);
@@ -1288,7 +1649,7 @@ if('serviceWorker' in navigator){
 
 /* Build stamp in Settings > About. Shows both the HTML build and the active SW
    cache so a stale-client mismatch is visible at a glance. */
-const APP_VERSION='v31';   // bump together with CACHE in sw.js
+const APP_VERSION='v33';   // bump together with CACHE in sw.js
 (function(){
   const el=document.getElementById('app-version');
   if(!el) return;
@@ -1298,6 +1659,21 @@ const APP_VERSION='v31';   // bump together with CACHE in sw.js
     if(c) el.textContent='Build '+APP_VERSION+' · cache '+c.replace('piano-practice-','');
   }).catch(()=>{});
 })();
+
+/* Diagnostics panel (Settings > About): the log is drawn when it is opened. */
+(function(){
+  const box=document.getElementById('diag'), out=document.getElementById('diag-out');
+  if(!box || !out) return;
+  const draw=()=>{ out.textContent=diagText(); };
+  box.addEventListener('toggle', ()=>{ if(box.open) draw(); });
+  gearBtn.addEventListener('click', ()=>{ if(box.open) draw(); });
+  document.getElementById('diag-copy').onclick=async()=>{
+    const text=diagText(); draw();
+    try{ await navigator.clipboard.writeText(text); alert('Log copied.'); }
+    catch(e){ prompt('Copy this log:', text); }
+  };
+})();
+dlog('launch', APP_VERSION);
 </script>
 </body>
 </html>
